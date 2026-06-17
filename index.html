@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>微型帝国时代：口袋战役 (Mini AOE)</title>
+    <title>口袋帝国时代 (Mini AOE Ultimate)</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <style>
@@ -17,7 +17,7 @@
             -webkit-tap-highlight-color: transparent;
         }
         body {
-            background-color: #1e293b;
+            background-color: #0f172a; /* 基础底色：极客深黑 */
             color: #fff;
             overflow: hidden;
             height: 100vh;
@@ -26,13 +26,14 @@
         }
         /* 顶部资源栏 */
         header {
-            background: #0f172a;
+            background: #1e293b;
             padding: 10px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid #334155;
+            border-bottom: 2px solid #475569;
             z-index: 10;
+            height: 46px;
         }
         .res-group {
             display: flex;
@@ -41,66 +42,57 @@
         .res-item {
             font-size: 14px;
             font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 4px;
         }
         .res-food { color: #f59e0b; }
         .res-wood { color: #10b981; }
         .res-gold { color: #eab308; }
 
-        /* 核心游戏区域 */
+        /* 主游戏布局 */
         main {
             flex: 1;
             display: flex;
-            position: relative;
+            flex-direction: row;
             overflow: hidden;
-            background-color: #15803d; 
+            background-color: #020617; /* 假如Canvas塌陷，这里会显示纯黑，方便排查 */
         }
 
-        /* 绝对定位容纳层：彻底根治Canvas尺寸塌陷 */
-        .canvas-container {
-            flex: 1;
-            position: relative;
-            height: 100%;
-        }
+        /* 刚性Canvas：直接由JS指定长宽，杜绝CSS暗箱操作 */
         canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #15803d; /* 深绿战场 */
+            display: block;
+            background: #16a34a; /* 真正的战场草地：明亮翠绿 */
             cursor: pointer;
         }
 
-        /* 右侧操控指令面板 */
+        /* 右侧独立控制台 */
         .control-panel {
             width: 160px;
-            background: rgba(15, 23, 42, 0.95);
-            border-left: 2px solid #334155;
+            background: #1e293b;
+            border-left: 2px solid #475569;
             padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
             z-index: 5;
         }
+
+        /* 手机移动端横竖屏强行适配 */
         @media (max-width: 600px) {
+            main {
+                flex-direction: column;
+            }
+            canvas {
+                order: 1;
+            }
             .control-panel {
+                order: 2;
                 width: 100%;
-                height: 75px;
-                position: absolute;
-                bottom: 0;
-                left: 0;
+                height: 80px;
                 flex-direction: row;
                 border-left: none;
-                border-top: 2px solid #334155;
-                padding: 8px;
+                border-top: 2px solid #475569;
+                padding: 6px;
                 justify-content: space-around;
                 align-items: center;
-            }
-            .canvas-container {
-                margin-bottom: 75px; /* 为底部留出操控空间 */
             }
         }
 
@@ -108,55 +100,49 @@
             background: #2563eb;
             color: white;
             border: none;
-            padding: 10px 8px;
+            padding: 10px 6px;
             border-radius: 6px;
             font-size: 12px;
             font-weight: bold;
             cursor: pointer;
-            transition: background 0.2s;
             text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         .cmd-btn:active { background: #1d4ed8; }
-        .cmd-btn:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; }
+        .cmd-btn:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
         .btn-build { background: #7c3aed; }
         .btn-build:active { background: #6d28d9; }
 
-        /* 状态提示 */
         .status-toast {
             position: absolute;
-            top: 20px;
+            top: 60px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0,0,0,0.85);
-            padding: 8px 18px;
+            padding: 8px 16px;
             border-radius: 20px;
-            font-size: 13px;
-            pointer-events: none;
-            color: #67e8f9;
+            font-size: 12px;
+            color: #22d3ee;
             z-index: 100;
             display: none;
-            border: 1px solid #334155;
+            border: 1px solid #06b6d4;
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <div style="font-size: 14px; font-weight: bold; color: #38bdf8;">微型帝国时代 v1.2.1 Fixed</div>
+    <header id="gameHeader">
+        <div style="font-size: 14px; font-weight: bold; color: #38bdf8;">微型帝国时代 v1.3 Pro</div>
         <div class="res-group">
             <span class="res-item res-food">🌾 食物: <span id="r-food">200</span></span>
             <span class="res-item res-wood">🪵 木材: <span id="r-wood">150</span></span>
             <span class="res-item res-gold">🪙 黄金: <span id="r-gold">50</span></span>
         </div>
-        <button onclick="toggleFullScreen()" style="background:#334155; border:none; color:white; padding:4px 8px; font-size:11px; border-radius:4px;">📱全屏</button>
+        <button onclick="toggleFullScreen()" style="background:#475569; border:none; color:white; padding:4px 8px; font-size:11px; border-radius:4px;">📱全屏</button>
     </header>
 
     <main>
-        <div class="status-toast" id="toast">请在战场草地上点击位置安放建筑...</div>
-        
-        <div class="canvas-container" id="canvasBox">
-            <canvas id="gameCanvas"></canvas>
-        </div>
+        <canvas id="gameCanvas"></canvas>
         
         <div class="control-panel">
             <button class="cmd-btn" id="btn-spawn-v" onclick="spawnVillager()">训练村民 (🌾50)</button>
@@ -165,15 +151,18 @@
         </div>
     </main>
 
+    <div class="status-toast" id="toast">【建造模式】请点击草地任意位置安放兵营...</div>
+
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const canvasBox = document.getElementById('canvasBox');
+        const headerEl = document.getElementById('gameHeader');
 
-        // 逻辑分辨率固定为 900x500
+        // 核心战争沙盘的虚拟画布逻辑分辨率 (不可更改)
         const GAME_W = 900;
         const GAME_H = 500;
         
+        // 游戏数据流
         let res = { food: 200, wood: 150, gold: 50 };
         let units = [];
         let buildings = [];
@@ -184,14 +173,27 @@
         let gameWin = false;
         let spawnTimer = 0;
 
-        // 智能获取父级容器真实尺寸，规避0宽高灾难
+        // 【核心修复：硬核强制像素注入】
         function resizeCanvas() {
-            canvas.width = canvasBox.clientWidth || window.innerWidth;
-            canvas.height = canvasBox.clientHeight || (window.innerHeight - 120);
+            const headerHeight = headerEl.offsetHeight || 46;
+            const isMobile = window.innerWidth <= 600;
+
+            if (isMobile) {
+                // 手机端：宽度占满，高度扣除顶部资源栏和底部80px控制台
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight - headerHeight - 80;
+            } else {
+                // 电脑端/横屏：宽度扣除右侧160px控制台，高度扣除顶部
+                canvas.width = window.innerWidth - 160;
+                canvas.height = window.innerHeight - headerHeight;
+            }
         }
+        
+        // 确保启动和变化时立刻强行刷新物理像素
         window.addEventListener('resize', resizeCanvas);
         window.addEventListener('orientationchange', () => { setTimeout(resizeCanvas, 200); });
 
+        // 坐标映射
         function getLogicalClick(e) {
             const rect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -202,14 +204,280 @@
             };
         }
 
+        // 初始化战局
         function initGame() {
-            // 玩家城镇中心 (TC)
-            buildings.push({ id: 'tc', type: 'TC', side: 'player', x: 100, y: 250, r: 40, hp: 1000, maxHp: 1000 });
-            // 敌方大本营
-            buildings.push({ id: 'enemy-base', type: 'Base', side: 'enemy', x: 800, y: 250, r: 40, hp: 1200, maxHp: 1200 });
+            buildings = [];
+            units = [];
+            resourcesOnMap = [];
 
-            // 刷出资源点
-            for(let i=0; i<5; i++) {
-                resourcesOnMap.push({ type: 'tree', x: 260 + Math.random()*80, y: 60 + Math.random()*140, amt: 600 });
-                resourcesOnMap.push({ type: 'tree', x: 260 + Math.random()*80, y: 300 + Math.random()*140, amt: 600 });
-                resourcesOnMap.push
+            // 我方大本营城镇中心 (TC) - 蓝色
+            buildings.push({ id: 'tc', type: 'TC', side: 'player', x: 120, y: 250, r: 35, hp: 1000, maxHp: 1000 });
+            // 敌方大本营 (Base) - 红色
+            buildings.push({ id: 'enemy-base', type: 'Base', side: 'enemy', x: 780, y: 250, r: 35, hp: 1200, maxHp: 1200 });
+
+            // 生成树木林和金矿
+            for(let i=0; i<4; i++) {
+                resourcesOnMap.push({ type: 'tree', x: 280 + Math.random()*60, y: 80 + Math.random()*120, amt: 600 });
+                resourcesOnMap.push({ type: 'tree', x: 280 + Math.random()*60, y: 300 + Math.random()*120, amt: 600 });
+                resourcesOnMap.push({ type: 'gold', x: 200 + Math.random()*80, y: 160 + Math.random()*180, amt: 500 });
+            }
+
+            // 初始化赠送2个辛勤的村民
+            units.push({ type: 'villager', side: 'player', x: 180, y: 210, tx: 180, ty: 210, hp: 50, maxHp: 50, targetRes: null, task: 'idle' });
+            units.push({ type: 'villager', side: 'player', x: 180, y: 290, tx: 180, ty: 290, hp: 50, maxHp: 50, targetRes: null, task: 'idle' });
+        }
+
+        // 触控交互大核心
+        function handleInteraction(e) {
+            if (gameOver) return;
+            const pos = getLogicalClick(e);
+
+            if (buildMode) {
+                if (res.wood >= 100) {
+                    res.wood -= 100;
+                    buildings.push({ id: 'barracks_' + Date.now(), type: 'Barracks', side: 'player', x: pos.x, y: pos.y, r: 30, hp: 500, maxHp: 500 });
+                    document.getElementById('btn-spawn-s').disabled = false;
+                }
+                buildMode = false;
+                document.getElementById('toast').style.display = 'none';
+                return;
+            }
+
+            // 点选我方人类单位
+            let clickedUnit = units.find(u => Math.hypot(u.x - pos.x, u.y - pos.y) < 22);
+            if (clickedUnit && clickedUnit.side === 'player') {
+                selectedEntity = clickedUnit;
+                return;
+            }
+
+            // 点选我方生产建筑
+            let clickedBuild = buildings.find(b => Math.hypot(b.x - pos.x, b.y - pos.y) < b.r);
+            if (clickedBuild && clickedBuild.side === 'player') {
+                selectedEntity = clickedBuild;
+                return;
+            }
+
+            // 战术调度命令
+            if (selectedEntity && selectedEntity.side === 'player' && selectedEntity.task) { 
+                let clickedRes = resourcesOnMap.find(r => Math.hypot(r.x - pos.x, r.y - pos.y) < 25);
+                let clickedEnemyBuild = buildings.find(b => b.side === 'enemy' && Math.hypot(b.x - pos.x, b.y - pos.y) < b.r);
+                let clickedEnemyUnit = units.find(u => u.side === 'enemy' && Math.hypot(u.x - pos.x, u.y - pos.y) < 18);
+
+                if (selectedEntity.type === 'villager' && clickedRes) {
+                    selectedEntity.targetRes = clickedRes;
+                    selectedEntity.targetEnemy = null;
+                    selectedEntity.tx = clickedRes.x;
+                    selectedEntity.ty = clickedRes.y;
+                    selectedEntity.task = 'gather';
+                } else if (clickedEnemyUnit || clickedEnemyBuild) {
+                    selectedEntity.targetEnemy = clickedEnemyUnit || clickedEnemyBuild;
+                    selectedEntity.targetRes = null;
+                    selectedEntity.tx = (clickedEnemyUnit || clickedEnemyBuild).x;
+                    selectedEntity.ty = (clickedEnemyUnit || clickedEnemyBuild).y;
+                    selectedEntity.task = 'attack';
+                } else {
+                    selectedEntity.tx = pos.x;
+                    selectedEntity.ty = pos.y;
+                    selectedEntity.targetRes = null;
+                    selectedEntity.targetEnemy = null;
+                    selectedEntity.task = 'move';
+                }
+            }
+        }
+
+        canvas.addEventListener('mousedown', handleInteraction);
+        canvas.addEventListener('touchstart', function(e) { e.preventDefault(); handleInteraction(e); }, {passive: false});
+
+        function spawnVillager() {
+            if (res.food >= 50) {
+                res.food -= 50;
+                units.push({ type: 'villager', side: 'player', x: 120, y: 250, tx: 180 + Math.random()*30, ty: 230 + Math.random()*40, hp: 50, maxHp: 50, targetRes: null, task: 'idle' });
+            }
+        }
+        function enterBuildMode() {
+            if (res.wood >= 100) {
+                buildMode = true;
+                document.getElementById('toast').style.display = 'block';
+            }
+        }
+        function spawnSoldier() {
+            let barracks = buildings.find(b => b.type === 'Barracks' && b.side === 'player');
+            if (barracks && res.food >= 60 && res.gold >= 20) {
+                res.food -= 60;
+                res.gold -= 20;
+                units.push({ type: 'soldier', side: 'player', x: barracks.x, y: barracks.y, tx: barracks.x + 50, ty: barracks.y + 30, hp: 120, maxHp: 120, task: 'idle' });
+            }
+        }
+
+        // 游戏数据驱动逻辑
+        function updateGame() {
+            if (gameOver) return;
+            res.food += 0.015; // 基础保底低保流浪食物
+
+            spawnTimer++;
+            if (spawnTimer % 450 === 0) { // 敌军侵略波次AI
+                let enemyBase = buildings.find(b => b.id === 'enemy-base');
+                if (enemyBase) {
+                    units.push({ type: 'soldier', side: 'enemy', x: enemyBase.x, y: enemyBase.y, tx: 200, ty: 250 + (Math.random()-0.5)*150, hp: 100, maxHp: 100, task: 'attack' });
+                }
+            }
+
+            units.forEach((u) => {
+                // 走位微调
+                if (Math.hypot(u.tx - u.x, u.ty - u.y) > 4) {
+                    u.x += (u.tx - u.x) * 0.05;
+                    u.y += (u.ty - u.y) * 0.05;
+                } else {
+                    if (u.type === 'villager' && u.task === 'gather' && u.targetRes) {
+                        if (u.targetRes.amt > 0) {
+                            u.targetRes.amt -= 0.5;
+                            if (u.targetRes.type === 'tree') res.wood += 0.5;
+                            if (u.targetRes.type === 'gold') res.gold += 0.5;
+                        } else {
+                            u.task = 'idle';
+                            u.targetRes = null;
+                        }
+                    }
+                }
+
+                // 攻击判定
+                if (u.type === 'soldier' || u.task === 'attack') {
+                    let target = u.targetEnemy;
+                    if (!target || target.hp <= 0) {
+                        target = units.find(o => o.side !== u.side && Math.hypot(o.x - u.x, o.y - u.y) < 140) ||
+                                 buildings.find(b => b.side !== u.side && Math.hypot(b.x - u.x, b.y - u.y) < 160);
+                    }
+
+                    if (target && target.hp > 0) {
+                        u.tx = target.x;
+                        u.ty = target.y;
+                        if (Math.hypot(target.x - u.x, target.y - u.y) < 35) {
+                            target.hp -= u.type === 'soldier' ? 0.8 : 0.25;
+                        }
+                    }
+                }
+            });
+
+            // 过滤阵亡
+            units = units.filter(u => u.hp > 0);
+            let tcAlive = buildings.find(b => b.id === 'tc' && b.hp > 0);
+            let enemyBaseAlive = buildings.find(b => b.id === 'enemy-base' && b.hp > 0);
+            buildings = buildings.filter(b => b.hp > 0);
+
+            if (!tcAlive) { gameOver = true; gameWin = false; }
+            if (!enemyBaseAlive) { gameOver = true; gameWin = true; }
+
+            // 刷新DOM数值
+            document.getElementById('r-food').innerText = Math.floor(res.food);
+            document.getElementById('r-wood').innerText = Math.floor(res.wood);
+            document.getElementById('r-gold').innerText = Math.floor(res.gold);
+        }
+
+        // 渲染视界
+        function renderGame() {
+            // 清理上一帧
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            // 根据JS动态计算出来的硬核分辨率与核心分辨率(900x500)作比例缩放映射
+            ctx.scale(canvas.width / GAME_W, canvas.height / GAME_H);
+
+            // 1. 战术白色方格线（修改颜色，拒绝与草地融为一体）
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.lineWidth = 1;
+            for(let x=0; x<GAME_W; x+=50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,GAME_H); ctx.stroke(); }
+            for(let y=0; y<GAME_H; y+=50) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(GAME_W,y); ctx.stroke(); }
+
+            // 2. 渲染资源（矿和树林）
+            resourcesOnMap.forEach(r => {
+                if (r.amt <= 0) return;
+                ctx.beginPath();
+                if (r.type === 'tree') {
+                    ctx.fillStyle = '#064e3b'; // 树根基座
+                    ctx.arc(r.x, r.y, 16, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.fillStyle = '#22c55e'; // 树冠明绿
+                    ctx.arc(r.x-4, r.y-4, 10, 0, Math.PI*2);
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = '#fbbf24'; // 璀璨闪闪金矿
+                    ctx.fillRect(r.x-12, r.y-12, 24, 24);
+                    ctx.strokeStyle = '#d97706';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            });
+
+            // 3. 建筑物绘制 (TC/兵营)
+            buildings.forEach(b => {
+                ctx.fillStyle = b.side === 'player' ? '#2563eb' : '#dc2626';
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(b.type, b.x, b.y + 4);
+
+                // 血条
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(b.x - b.r, b.y - b.r - 14, b.r*2, 6);
+                ctx.fillStyle = b.side === 'player' ? '#60a5fa' : '#f87171';
+                ctx.fillRect(b.x - b.r, b.y - b.r - 14, (b.r*2) * (b.hp / b.maxHp), 6);
+            });
+
+            // 4. 军队与村民人物绘制
+            units.forEach(u => {
+                ctx.beginPath();
+                ctx.arc(u.x, u.y, u.type === 'soldier' ? 11 : 8, 0, Math.PI*2);
+                ctx.fillStyle = u.side === 'player' ? '#3b82f6' : '#ef4444';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                if (u.type === 'soldier') { // 长矛标志
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#f59e0b';
+                    ctx.lineWidth = 3;
+                    ctx.moveTo(u.x - 4, u.y - 4);
+                    ctx.lineTo(u.x + 6, u.y + 6);
+                    ctx.stroke();
+                }
+
+                if (u.task === 'gather' && u.targetRes && Math.hypot(u.x - u.targetRes.x, u.y - u.targetRes.y) < 35) {
+                    ctx.fillStyle = '#ffff00';
+                    ctx.font = '12px sans-serif';
+                    ctx.fillText("⚒️", u.x, u.y - 16);
+                }
+
+                // 个人迷你血条
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(u.x - 10, u.y - 12, 20, 3);
+                ctx.fillStyle = '#22c55e';
+                ctx.fillRect(u.x - 10, u.y - 12, 20 * (u.hp / u.maxHp), 3);
+            });
+
+            // 5. 点选高亮青色虚线环
+            if (selectedEntity && selectedEntity.hp > 0) {
+                ctx.beginPath();
+                ctx.arc(selectedEntity.x, selectedEntity.y, (selectedEntity.r || 10) + 6, 0, Math.PI*2);
+                ctx.strokeStyle = '#06b6d4';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // 6. 判定落幕
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0,0,0,0.9)';
+                ctx.fillRect(0, 0, GAME_W, GAME_H);
+                ctx.fillStyle = gameWin ? '#22c55e' : '#ef4444';
+                ctx.font = 'bold 32px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(gameWin ? "【 帝国大捷！您摧毁了强
