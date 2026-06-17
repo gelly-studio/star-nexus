@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>星穹之邦：源晶逆袭 (Aetheria: Nexus Defense & Raid)</title>
+    
+    <!-- 移动端全屏/PWA 沉浸式独立应用配置 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0b0f19">
+
+    <style>
+        :root {
+            --bg-dark: #0b0f19;
+            --panel-bg: rgba(22, 30, 49, 0.75);
+            --panel-border: rgba(56, 189, 248, 0.2);
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.4);
+            --accent: #a855f7;
+            --accent-glow: rgba(168, 85, 247, 0.4);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            /* 优化移动端点击高亮 */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.15) 2px, transparent 40px),
+                radial-gradient(white, rgba(255,255,255,.1) 1px, transparent 30px);
+            background-size: 350px 350px, 250px 250px;
+            background-position: 0 0, 130px 270px;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+        }
+
+        /* Top Resource Bar */
+        header {
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.7) 100%);
+            border-bottom: 1px solid var(--panel-border);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 10;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .brand-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand h1 {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .brand span {
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .resources {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .res-item {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 6px 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 105px;
+            position: relative;
+        }
+
+        .res-item::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 2px;
+            width: 100%;
+        }
+        .res-aether::after { background-color: var(--primary); }
+        .res-ironwood::after { background-color: var(--warning); }
+        .res-fleet::after { background-color: var(--accent); }
+
+        .res-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            display: block;
+        }
+
+        .res-val {
+            font-size: 14px;
+            font-weight: 600;
+            font-family: monospace;
+        }
+
+        /* Main Game Layout */
+        main {
+            flex: 1;
+            display: flex;
+            padding: 12px;
+            gap: 12px;
+            overflow: hidden;
+        }
+
+        /* Sidebar Tabs Navigation */
+        .nav-panel {
+            width: 76px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            color: var(--text-muted);
+            padding: 12px 0;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .nav-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: currentColor;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            color: var(--primary);
+            border-color: var(--primary);
+            background: rgba(56, 189, 248, 0.1);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.15);
+        }
+
+        .nav-btn.active {
+            color: var(--accent);
+            border-color: var(--accent);
+            background: rgba(168, 85, 247, 0.1);
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.15);
+        }
+
+        /* Central Content Window */
+        .content-panel {
+            flex: 1;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .tab-content {
+            display: none;
+            height: 100%;
+            flex-direction: column;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        .section-title {
+            font-size: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-left: 4px solid var(--primary);
+            padding-left: 8px;
+        }
+
+        /* Grid View for Base Building */
+        .base-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .build-card {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+
+        .build-card:hover {
+            border-color: var(--primary);
+            background: rgba(15, 23, 42, 0.7);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 6px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .card-lvl {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--primary);
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .card-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .card-cost {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 6px;
+            border-radius: 6px;
+        }
+
+        .cost-val.shortage {
+            color: var(--danger);
+        }
+
+        .action-btn {
+            background: linear-gradient(90deg, var(--primary), #0284c7);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+
+        .action-btn:hover { opacity: 0.9; }
+        .action-btn:disabled {
+            background: #334155 !important;
+            color: #64748b;
+            cursor: not-allowed;
+        }
+
+        /* Raid Map Sector List */
+        .raid-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .raid-item {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .raid-info h3 {
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+        
+        .raid-danger {
+            font-size: 10px;
+            padding: 1px 5px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+        .danger-low { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .danger-med { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .danger-high { background: rgba(239, 68, 116, 0.2); color: var(--danger); }
+
+        .raid-loot {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .btn-raid { background: linear-gradient(90deg, var(--accent), #7e22ce); }
+
+        /* Cultivation Panel */
+        .hero-panel {
+            display: flex;
+            gap: 16px;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            margin-bottom: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .hero-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+        }
+
+        .hero-avatar svg { width: 36px; height: 36px; fill: white; }
+
+        .hero-stats {
+            flex: 1;
+            min-width: 150px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hero-name { font-size: 16px; font-weight: bold; }
+        .hero-rank { font-size: 11px; color: var(--accent); font-weight: 600; letter-spacing: 0.5px;}
+
+        /* Right Terminal Console / Logs */
+        .log-panel {
+            width: 260px;
+            background: rgba(10, 15, 26, 0.85);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 移动端适配：屏幕窄时隐藏右侧日志栏，腾出空间 */
+        @media (max-width: 768px) {
+            .log-panel { display: none; }
+            header { padding: 8px 12px; }
+            main { padding: 8px; gap: 8px; }
+            .nav-panel { width: 64px; }
+            .nav-btn { padding: 10px 0; font-size: 10px; }
+        }
+
+        .log-header {
+            padding: 10px 14px;
+            background: rgba(15, 23, 42, 0.8);
+            font-size: 12px;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .log-body {
+            flex: 1;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 11px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .log-item { padding-bottom: 4px; border-bottom: 1px dashed rgba(255, 255, 255, 0.03); }
+        .log-system { color: var(--text-muted); }
+        .log-success { color: var(--success); }
+        .log-warning { color: var(--warning); }
+        .log-danger { color: var(--danger); }
+
+        /* Interactive Canvas Overlay for Battles */
+        .battle-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(5, 8, 15, 0.96);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 10px;
+        }
+
+        .battle-container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--bg-dark);
+            border: 2px solid var(--accent);
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.4);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .battle-canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 50%; /* 2:1 宽高比自适应 */
+            background: #05070f;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .battle-header {
+            padding: 12px 16px;
+            background: rgba(168, 85, 247, 0.1);
+            border-bottom: 1px solid rgba(168, 85, 247, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .battle-title { font-size: 14px; font-weight: bold; }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <!-- Top Resource Bar -->
+    <header>
+        <div class="brand-container">
+            <div class="brand">
+                <h1>AETHERIA: NEXUS</h1>
+                <span>星穹之邦：源晶逆袭 v1.1.0 Mobile+</span>
+            </div>
+            <!-- 全屏触发器按钮 -->
+            <button onclick="toggleFullScreen()" class="action-btn" style="padding: 5px 10px; font-size: 11px; background: linear-gradient(90deg, #10b981, #059669); box-shadow: 0 0 10px rgba(16,185,129,0.2);">
+                📱 全屏视野
+            </button>
+        </div>
+        <div class="resources">
+            <div class="res-item res-aether">
+                <div>
+                    <span class="res-label">源能星晶 (Aether)</span>
+                    <span class="res-val" id="res-aether">500</span>
+                </div>
+            </div>
+            <div class="res-item res-ironwood">
+                <div>
+                    <span class="res-label">黑钛铁木 (Ironwood)</span>
+                    <span class="res-val" id="res-ironwood">300</span>
+                </div>
+            </div>
+            <div class="res-item res-fleet">
+                <div>
+                    <span class="res-label">远征星舰 (Fleet)</span>
+                    <span class="res-val" id="res-fleet">0</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Window -->
+    <main>
+        <!-- Sidebar Navigation Tabs -->
+        <div class="nav-panel">
+            <button class="nav-btn active" onclick="switchTab('tab-base')">
+                <svg viewBox="0 0 24 24"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3zm0 4.25l4.5 4.05v6.2h-2.5v-6h-4v6H6.5v-6.2L11 7.25z"/></svg>
+                基地建设
+            </button>
+            <button class="nav-btn" onclick="switchTab('tab-fleet')">
+                <svg viewBox="0 0 24 24"><path d="M12 2L2 19h6l1-3h6l1 3h6L12 2zm0 3.6l3.6 6.4H8.4L12 5.6zM10.25 14l-.67 2h4.84l-.67-2h-3.5z"/></svg>
+                舰队整编
+            </button>
+            <button class="nav-btn" onclick="switchTab('tab-map')">
+                <svg viewBox="0 0 24 24"><path d="M20.5 3l-6.5 2.7-6-2.7L2 5.7V21l6.5-2.7 6 2.7 6-2.7V3zM8.5 5.5l5 2.25v12.75l-5-2.25V5.5zM4 7.15l3-1.25v12.4l-3 1.25V7.15zm16 9.7l-3 1.25V5.7l3-1.25v12.4z"/></svg>
+                星域掠夺
+            </button>
+        </div>
+
+        <!-- Central Working Window -->
+        <div class="content-panel">
+            <!-- TAB 1: Base Matrix -->
+            <div id="tab-base" class="tab-content active">
+                <div class="section-title">核心基地矩阵</div>
+                <div class="base-grid" id="building-grid"></div>
+            </div>
+
+            <!-- TAB 2: Fleet Cultivation -->
+            <div id="tab-fleet" class="tab-content">
+                <div class="section-title">主宰进化与星舰扩编</div>
+                <div class="hero-panel">
+                    <div class="hero-avatar">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="hero-name" id="hero-name">虚空指挥官 · 迦罗</div>
+                        <div class="hero-rank" id="hero-rank">星域级 阶位 I</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">全军战力加成: <span id="hero-bonus" style="color:var(--primary); font-weight:bold;">+0%</span></div>
+                    </div>
+                    <button class="action-btn btn-raid" onclick="upgradeHero()" id="btn-upgrade-hero">晋升阶位</button>
+                </div>
+
+                <div class="section-title">星舰船坞</div>
+                <div class="base-grid">
+                    <div class="build-card">
+                        <div class="card-header">
+                            <span class="card-title">“无畏级”截击舰</span>
+                            <span class="card-lvl" id="ship-count">0 艘</span>
+                        </div>
+                        <p class="card-desc">轻量高速打击群，专为跨星域资源掠夺和骚扰敌方外围防御设计。</p>
+                        <div class="card-cost">
+                            消耗: <span id="ship-cost-aether">80</span> 源晶 / <span id="ship-cost-ironwood">40</span> 铁木
+                        </div>
+                        <button class="action-btn" onclick="buildShip()">建造星舰 (+1 基础战斗力)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: Stellar Map -->
+            <div id="tab-map" class="tab-content">
+                <div class="section-title">未探索星域与掠夺目标</div>
+                <div class="raid-list" id="raid-sectors"></div>
+            </div>
+        </div>
+
+        <!-- Right Terminal Logs -->
+        <div class="log-panel">
+            <div class="log-header">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+                战术指引终端
+            </div>
+            <div class="log-body" id="log-box">
+                <div class="log-item log-system">[系统] 核心控制台网络握手成功。</div>
+                <div class="log-item log-warning">[提议] 优先升级产能建筑，积攒战备资源。</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Canvas Battle Animation Overlay -->
+    <div class="battle-overlay" id="battle-screen">
+        <div class="battle-container">
+            <div class="battle-header">
+                <span class="battle-title" id="battle-screen-title">正在向目标坐标破空折跃...</span>
+                <span id="battle-timer" style="font-family:monospace; color:var(--accent);">计算中...</span>
+            </div>
+            <div class="battle-canvas-wrapper">
+                <!-- 预设画布固定的逻辑分辨率，通过 CSS 完美缩放防模糊 -->
+                <canvas id="battleCanvas" width="800" height="400"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game State Core Data 
+        let state = {
+            resources: { aether: 500, ironwood: 300, fleet: 0 },
+            buildings: {
+                extractor: { name: "源晶萃取器", lvl: 1, baseCostA: 100, baseCostI: 50, rate: 2 },
+                logger: { name: "磁力伐木场", lvl: 1, baseCostA: 60, baseCostI: 80, rate: 1 },
+                turret: { name: "等离子防御塔", lvl: 0, baseCostA: 200, baseCostI: 150, rate: 15 },
+            },
+            hero: { lvl: 1, bonus: 0 },
+            shipCost: { aether: 80, ironwood: 40 }
+        };
+
+        const sectors = [
+            { id: 1, name: "微型流浪陨石带", danger: "low", dangerTxt: "低度危险", reqFleet: 1, lootA: 150, lootI: 100 },
+            { id: 2, name: "半人马座星际海盗营地", danger: "med", dangerTxt: "中度危险", reqFleet: 5, lootA: 600, lootI: 400 },
+            { id: 3, name: "帝国边缘备用补给库", danger: "high", dangerTxt: "高度危险", reqFleet: 15, lootA: 2500, lootI: 1500 }
+        ];
+
+        // Persistent Data Load
+        if (localStorage.getItem('aetheria_nexus_save_v11')) {
+            try {
+                const savedState = JSON.parse(localStorage.getItem('aetheria_nexus_save_v11'));
+                if (savedState) state = savedState;
+            } catch(e) { console.log("Save load failed, default state loaded."); }
+        }
+
+        // Tickers logic
+        setInterval(() => {
+            state.resources.aether += (state.buildings.extractor.lvl * state.buildings.extractor.rate) * 0.2;
+            state.resources.ironwood += (state.buildings.logger.lvl * state.buildings.logger.rate) * 0.2;
+            updateUI();
+        }, 200);
+
+        // Auto Save Routine
+        setInterval(() => {
+            localStorage.setItem('aetheria_nexus_save_v11', JSON.stringify(state));
+            pushLog("[系统] 跨位图星系存档自动保存成功。", "system");
+        }, 8000);
+
+        function updateUI() {
+            document.getElementById('res-aether').innerText = Math.floor(state.resources.aether);
+            document.getElementById('res-ironwood').innerText = Math.floor(state.resources.ironwood);
+            document.getElementById('res-fleet').innerText = state.resources.fleet;
+
+            // Render Buildings Grid
+            const grid = document.getElementById('building-grid');
+            grid.innerHTML = '';
+            for (let id in state.buildings) {
+                const b = state.buildings[id];
+                const costA = Math.floor(b.baseCostA * Math.pow(1.55, b.lvl));
+                const costI = Math.floor(b.baseCostI * Math.pow(1.55, b.lvl));
+                const canAfford = state.resources.aether >= costA && state.resources.ironwood >= costI;
+                
+                let desc = id === 'extractor' ? `自动精炼星晶能源，基础产能: +${b.lvl * b.rate}/秒` :
+                           id === 'logger' ? `空间锚定收割铁木，基础产能: +${b.lvl * b.rate}/秒` :
+                           `高能矩阵防卫，保障领地绝对安全级: ${b.lvl * b.rate}`;
+
+                grid.innerHTML += `
+                    <div class="build-card">
+                        <div class="card-header">
+                            <span class="card-title">${b.name}</span>
+                            <span class="card-lvl">Lv.${b.lvl}</span>
+                        </div>
+                        <p class="card-desc">${desc}</p>
+                        <div class="card-cost">
+                            升级需: <span class="${state.resources.aether < costA ? 'shortage' : ''}">${costA}源晶</span> / 
+                            <span class="${state.resources.ironwood < costI ? 'shortage' : ''}">${costI}铁木</span>
+                        </div>
+                        <button class="action-btn" ${canAfford ? '' : 'disabled'} onclick="upgradeBuilding('${id}', ${costA}, ${costI})">
+                            矩阵升级
+                        </button>
+                    </div>
+                `;
+            }
+
+            // Cultivation info Updates
+            document.getElementById('ship-count').innerText = `${state.resources.fleet} 艘`;
+            document.getElementById('hero-rank').innerText = `星域级 阶位 ${state.hero.lvl}`;
+            document.getElementById('hero-bonus').innerText = `+${state.hero.bonus}%`;
+            document.getElementById('btn-upgrade-hero').innerText = `晋升阶位 (需${state.hero.lvl * 500}源晶)`;
+
+            // Render Raid Objectives Map
+            const mapContainer = document.getElementById('raid-sectors');
+            mapContainer.innerHTML = '';
+            sectors.forEach(s => {
+                const totalPower = state.resources.fleet * (1 + state.hero.bonus/100);
+                const winRate = Math.min(100, Math.floor((totalPower / (s.reqFleet || 1)) * 100));
+                
+                mapContainer.innerHTML += `
+                    <div class="raid-item">
+                        <div class="raid-info">
+                            <h3>${s.name}</h3>
+                            <span class="raid-danger danger-${s.danger}">${s.dangerTxt} (推荐战力: ${s.reqFleet})</span>
+                            <div class="raid-loot">战利品密档: <span style="color:var(--primary); font-weight:bold;">${s.lootA}源晶</span> / <span style="color:var(--warning); font-weight:bold;">${s.lootI}铁木</span></div>
+                        </div>
+                        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                            <span style="font-size:11px; color:var(--text-muted);">克敌胜率: <span style="color:${winRate > 75 ? 'var(--success)' : winRate > 45 ? 'var(--warning)' : 'var(--danger)'}; font-weight:bold;">${winRate}%</span></span>
+                            <button class="action-btn btn-raid" ${state.resources.fleet > 0 ? '' : 'disabled'} onclick="startRaid(${s.id})">战舰出击</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        function upgradeBuilding(id, costA, costI) {
+            if (state.resources.aether >= costA && state.resources.ironwood >= costI) {
+                state.resources.aether -= costA;
+                state.resources.ironwood -= costI;
+                state.buildings[id].lvl++;
+                pushLog(`[建筑] ${state.buildings[id].name} 迭代至级 Lv.${state.buildings[id].lvl}`, "success");
+                updateUI();
+            }
+        }
+
+        function buildShip() {
+            if (state.resources.aether >= state.shipCost.aether && state.resources.ironwood >= state.shipCost.ironwood) {
+                state.resources.aether -= state.shipCost.aether;
+                state.resources.ironwood -= state.shipCost.ironwood;
+                state.resources.fleet++;
+                pushLog(`[军备] 船坞质检通过，交付一艘“无畏级”截击舰！`, "success");
+                updateUI();
+            } else {
+                pushLog(`[告警] 矿产储备受限，星舰组装线挂起。`, "danger");
+            }
+        }
+
+        function upgradeHero() {
+            let cost = state.hero.lvl * 500;
+            if (state.resources.aether >= cost) {
+                state.resources.aether -= cost;
+                state.hero.lvl++;
+                state.hero.bonus += 15;
+                pushLog(`[进化] 指挥官迦罗高维基因跃迁成功，全军攻防增幅！`, "success");
+                updateUI();
+            } else {
+                pushLog(`[告警] 提取的源晶剂量不足以支撑基因进化。`, "danger");
+            }
+        }
+
+        function pushLog(text, type) {
+            const logBox = document.getElementById('log-box');
+            if(!logBox) return;
+            const item = document.createElement('div');
+            item.className = `log-item log-${type}`;
+            item.innerText = text;
+            logBox.appendChild(item);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // Native HTML5 Fullscreen Engine Switcher (Mobile Optimized)
+        function toggleFullScreen() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement) {
+                const docEl = document.documentElement;
+                if (docEl.requestFullscreen) docEl.requestFullscreen();
+                else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
+                else if (docEl.mozRequestFullScreen) docEl.mozRequestFullScreen();
+                pushLog("[系统] 矩阵全屏视野加载完毕，执行沉浸式控制。", "success");
+            } else {
+                const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen;
+                if (exit) exit.call(document);
+                pushLog("[系统] 已卸载全屏视野。", "system");
+            }
+        }
+
+        // Canvas Engine Battle Simulation
+        function startRaid(sectorId) {
+            const s = sectors.find(x => x.id === sectorId);
+            const overlay = document.getElementById('battle-screen');
+            const timer = document.getElementById('battle-timer');
+            overlay.style.display = 'flex';
+            
+            const canvas = document.getElementById('battleCanvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let frames = 0;
+            
+            function initAnimation() {
+                particles = [];
+                for(let i=0; i<25; i++) {
+                    particles.push({ x: Math.random() * 150 + 50, y: Math.random() * 260 + 70, vx: Math.random() * 3 + 2, vy: (Math.random() - 0.5) * 1.5, color: '#38bdf8', size: Math.random() * 2.5 + 1.5 });
+                }
+                for(let i=0; i<25; i++) {
+                    particles.push({ x: Math.random() * 150 + 580, y: Math.random() * 260 + 70, vx: -(Math.random() * 3 + 2), vy: (Math.random() - 0.5) * 1.5, color: '#ef4444', size: Math.random() * 2.5 + 1.5 });
+                }
+            }
+            initAnimation();
+
+            let animInterval = setInterval(() => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                frames++;
+                
+                // Draw space background grid
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.04)';
+                ctx.lineWidth = 1;
+                for(let i=0; i<canvas.width; i+=50) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+                for(let j=0; j<canvas.height; j+=50) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke(); }
+
+                ctx.fillStyle = '#38bdf8';
+                ctx.font = '13px monospace';
+                ctx.fillText(`🚀 我方舰队 (战力: ${Math.floor(state.resources.fleet * (1 + state.hero.bonus/100))})`, 40, 45);
+                ctx.fillStyle = '#ef4444';
+                ctx.fillText(`🛸 目标御林守卫 (战力: ${s.reqFleet})`, 580, 45);
+
+                // Particles update
+                particles.forEach(p => {
+                    p.x += p.vx; p.y += p.vy;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+
+                    if(Math.random() > 0.94) {
+                        ctx.strokeStyle = p.color === '#38bdf8' ? 'rgba(56, 189, 248, 0.5)' : 'rgba(239, 68, 68, 0.5)';
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + p.vx * 12, p.y + p.vy * 12); ctx.stroke();
+                    }
+                });
+
+                timer.innerText = `火力覆盖与冲突结算中 [${Math.floor((90-frames)/3)}...]`;
+
+                if(frames >= 90) {
+                    clearInterval(animInterval);
+                    overlay.style.display = 'none';
+                    resolveBattle(s);
+                }
+            }, 33);
+        }
+
+        function resolveBattle(s) {
+            const totalPower = state.resources.fleet * (1 + state.hero.bonus/100);
+            const roll = Math.random() * s.reqFleet;
+            
+            if (totalPower >= roll) {
+                state.resources.aether += s.lootA;
+                state.resources.ironwood += s.lootI;
+                pushLog(`[大捷] 摧毁 ${s.name} 防线！掠夺晶体+${s.lootA}，铁木+${s.lootI}。`, "success");
+            } else {
+                const loss = Math.max(1, Math.floor(state.resources.fleet * 0.25));
+                state.resources.fleet -= loss;
+                pushLog(`[失利] 突袭 ${s.name} 被引力雷重创，我方折损星舰 ${loss} 艘！`, "danger");
+            }
+            updateUI();
+        }
+
+        updateUI();
+    </script>
+</body>
+</html>
