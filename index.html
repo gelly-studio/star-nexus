@@ -33,7 +33,7 @@
             border-bottom: 2px solid #475569;
             z-index: 10;
             height: 46px;
-            flex-shrink: 0; /* 拒绝被任何元素挤压 */
+            flex-shrink: 0;
         }
         .res-group {
             display: flex;
@@ -56,19 +56,26 @@
             position: relative;
         }
 
-        /* 黄金尺寸策略：由CSS决定物理布局大小，JS只去适应它，不参与决定 */
-        canvas {
-            display: block;
+        /* 刚性绝对定位：阻断一切CSS引起的排查死循环 */
+        #canvas-container {
             flex: 1;
-            width: 0; /* 允许在Flex布局中稳定地进行横向自适应伸缩 */
+            position: relative;
             height: 100%;
-            background: #16a34a; 
+            background: #16a34a; /* 默认战术草地绿 */
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
             cursor: pointer;
         }
 
         .control-panel {
             width: 160px;
-            flex-shrink: 0; /* 核心修复：绝对禁止被缩减，坚守160px宽度 */
+            flex-shrink: 0;
             background: #1e293b;
             border-left: 2px solid #475569;
             padding: 12px;
@@ -79,15 +86,9 @@
             overflow-y: auto;
         }
 
-        /* 手机端移动适配布局 */
         @media (max-width: 600px) {
             main {
                 flex-direction: column;
-            }
-            canvas {
-                width: 100%;
-                height: 0;
-                flex: 1;
             }
             .control-panel {
                 width: 100%;
@@ -101,7 +102,7 @@
             }
         }
 
-        /* 兼容全平台（含iPhone iOS）的完美网页模拟全屏方案 */
+        /* 通杀一切移动端（包含苹果iOS）的模拟全屏 */
         .fullscreen-active #gameHeader {
             display: none !important;
         }
@@ -150,8 +151,33 @@
 </head>
 <body>
 
+    <!-- 【独立第一防御层】如果游戏主体代码崩溃，此项监控器100%在最前端拦截并弹窗报错 -->
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            var errorDiv = document.createElement('div');
+            errorDiv.style.position = 'fixed';
+            errorDiv.style.top = '0';
+            errorDiv.style.left = '0';
+            errorDiv.style.width = '100%';
+            errorDiv.style.height = '100%';
+            errorDiv.style.background = 'rgba(220, 38, 38, 0.95)';
+            errorDiv.style.color = 'white';
+            errorDiv.style.padding = '25px';
+            errorDiv.style.zIndex = '1000000';
+            errorDiv.style.fontFamily = 'monospace';
+            errorDiv.style.fontSize = '14px';
+            errorDiv.style.overflow = 'auto';
+            errorDiv.innerHTML = '<h2 style="color:#fecaca;margin-bottom:10px;">🚨 引擎核心脚本加载/编译失败告警</h2>' +
+                                 '<p><b>原因:</b> ' + message + '</p>' +
+                                 '<p><b>位置:</b> ' + source + ' (第 ' + lineno + ' 行)</p>' +
+                                 '<p style="margin-top:15px;color:#cbd5e1;">说明：这表示当前设备浏览器内核解析发生了严重冲突。请将此画面截图反馈！</p>';
+            document.body.appendChild(errorDiv);
+            return false;
+        };
+    </script>
+
     <header id="gameHeader">
-        <div style="font-size: 14px; font-weight: bold; color: #38bdf8;">微型帝国时代 v1.4 Ultra</div>
+        <div style="font-size: 14px; font-weight: bold; color: #38bdf8;">微型帝国时代 v1.5 Enterprise</div>
         <div class="res-group">
             <span class="res-item res-food">🌾 食物: <span id="r-food">200</span></span>
             <span class="res-item res-wood">🪵 木材: <span id="r-wood">150</span></span>
@@ -161,7 +187,9 @@
     </header>
 
     <main id="gameMain">
-        <canvas id="gameCanvas"></canvas>
+        <div id="canvas-container">
+            <canvas id="gameCanvas"></canvas>
+        </div>
         
         <div class="control-panel">
             <button class="cmd-btn" id="btn-spawn-v" onclick="spawnVillager()">训练村民 (🌾50)</button>
@@ -172,66 +200,56 @@
 
     <div class="status-toast" id="toast">【建造模式】请点击草地任意位置安放兵营...</div>
 
+    <!-- 【第二层：全套标准老式纯ES5标准语法的游戏核心逻辑】 -->
     <script>
-        // 【防抓狂致命武器】如果JS因为任何诡异的小毛病崩溃，直接满屏红色弹窗，精确指示排查，绝不默默绿屏
-        window.addEventListener('error', function(e) {
-            const errorDiv = document.createElement('div');
-            errorDiv.style.position = 'absolute';
-            errorDiv.style.top = '0';
-            errorDiv.style.left = '0';
-            errorDiv.style.width = '100%';
-            errorDiv.style.background = 'rgba(220, 38, 255, 0.95)';
-            errorDiv.style.color = 'white';
-            errorDiv.style.padding = '25px';
-            errorDiv.style.zIndex = '100000';
-            errorDiv.style.fontFamily = 'monospace';
-            errorDiv.style.fontSize = '14px';
-            errorDiv.style.lineHeight = '1.6';
-            errorDiv.innerText = '【发现运行时异常崩溃】\n错误原因: ' + e.message + '\n错误文件: ' + e.filename + '\n代码行号: ' + e.lineno;
-            document.body.appendChild(errorDiv);
-        });
+        var canvas = document.getElementById('gameCanvas');
+        var ctx = canvas.getContext('2d');
+        var container = document.getElementById('canvas-container');
 
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-
-        // 核心战争沙盘的虚拟画布逻辑分辨率 (不可更改)
-        const GAME_W = 900;
-        const GAME_H = 500;
+        var GAME_W = 900;
+        var GAME_H = 500;
         
-        // 游戏数据流
-        let res = { food: 200, wood: 150, gold: 50 };
-        let units = [];
-        let buildings = [];
-        let resourcesOnMap = [];
-        let selectedEntity = null;
-        let buildMode = false;
-        let gameOver = false;
-        let gameWin = false;
-        let spawnTimer = 0;
+        var res = { food: 200, wood: 150, gold: 50 };
+        var units = [];
+        var buildings = [];
+        var resourcesOnMap = [];
+        var selectedEntity = null;
+        var buildMode = false;
+        var gameOver = false;
+        var gameWin = false;
+        var spawnTimer = 0;
 
-        // 【超级修复：彻底解除Flexbox震荡循环，直接拾取浏览器渲染宽高】
+        // 老式标准两点距离求和计算法，杜绝 Math.hypot 兼容隐患
+        function getDistance(x1, y1, x2, y2) {
+            var dx = x1 - x2;
+            var dy = y1 - y2;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
         function resizeCanvas() {
-            const currentClientW = canvas.clientWidth || window.innerWidth;
-            const currentClientH = canvas.clientHeight || window.innerHeight;
+            var w = container.clientWidth || window.innerWidth;
+            var h = container.clientHeight || window.innerHeight;
             
-            // 只有当尺寸确实改变时才修改分辨率，规避部分顽固浏览器的重绘死循环
-            if (canvas.width !== currentClientW || canvas.height !== currentClientH) {
-                canvas.width = currentClientW;
-                canvas.height = currentClientH;
+            // 兜底防御：若容器汇报0像素尺寸，强行赋予基础可视范围
+            if (w < 50) w = 320;
+            if (h < 50) h = 240;
+
+            if (canvas.width !== w || canvas.height !== h) {
+                canvas.width = w;
+                canvas.height = h;
             }
         }
         
         window.addEventListener('resize', resizeCanvas);
-        window.addEventListener('orientationchange', () => { setTimeout(resizeCanvas, 300); });
+        window.addEventListener('orientationchange', function() { setTimeout(resizeCanvas, 300); });
 
-        // 触控/鼠标坐标解算
         function getLogicalClick(e) {
-            const rect = canvas.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            var rect = canvas.getBoundingClientRect();
+            var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            var clientY = e.touches ? e.touches[0].clientY : e.clientY;
             
-            const realW = rect.width || 1;
-            const realH = rect.height || 1;
+            var realW = rect.width || 1;
+            var realH = rect.height || 1;
 
             return {
                 x: ((clientX - rect.left) / realW) * GAME_W,
@@ -239,33 +257,27 @@
             };
         }
 
-        // 初始化战局
         function initGame() {
             buildings = [];
             units = [];
             resourcesOnMap = [];
 
-            // 我方大本营城镇中心 (TC) - 蓝色
             buildings.push({ id: 'tc', type: 'TC', side: 'player', x: 120, y: 250, r: 35, hp: 1000, maxHp: 1000 });
-            // 敌方大本营 (Base) - 红色
             buildings.push({ id: 'enemy-base', type: 'Base', side: 'enemy', x: 780, y: 250, r: 35, hp: 1200, maxHp: 1200 });
 
-            // 生成树木林和金矿
-            for(let i=0; i<4; i++) {
-                resourcesOnMap.push({ type: 'tree', x: 280 + Math.random()*60, y: 80 + Math.random()*120, amt: 600 });
-                resourcesOnMap.push({ type: 'tree', x: 280 + Math.random()*60, y: 300 + Math.random()*120, amt: 600 });
-                resourcesOnMap.push({ type: 'gold', x: 200 + Math.random()*80, y: 160 + Math.random()*180, amt: 500 });
+            for (var i = 0; i < 4; i++) {
+                resourcesOnMap.push({ type: 'tree', x: 280 + Math.random() * 60, y: 80 + Math.random() * 120, amt: 600 });
+                resourcesOnMap.push({ type: 'tree', x: 280 + Math.random() * 60, y: 300 + Math.random() * 120, amt: 600 });
+                resourcesOnMap.push({ type: 'gold', x: 200 + Math.random() * 80, y: 160 + Math.random() * 180, amt: 500 });
             }
 
-            // 初始化赠送2个辛勤的村民
             units.push({ type: 'villager', side: 'player', x: 180, y: 210, tx: 180, ty: 210, hp: 50, maxHp: 50, targetRes: null, task: 'idle' });
             units.push({ type: 'villager', side: 'player', x: 180, y: 290, tx: 180, ty: 290, hp: 50, maxHp: 50, targetRes: null, task: 'idle' });
         }
 
-        // 战术操作命令集
         function handleInteraction(e) {
             if (gameOver) return;
-            const pos = getLogicalClick(e);
+            var pos = getLogicalClick(e);
 
             if (buildMode) {
                 if (res.wood >= 100) {
@@ -278,22 +290,60 @@
                 return;
             }
 
-            let clickedUnit = units.find(u => Math.hypot(u.x - pos.x, u.y - pos.y) < 22);
-            if (clickedUnit && clickedUnit.side === 'player') {
+            var clickedUnit = null;
+            for (var i = 0; i < units.length; i++) {
+                var u = units[i];
+                if (getDistance(u.x, u.y, pos.x, pos.y) < 22 && u.side === 'player') {
+                    clickedUnit = u;
+                    break;
+                }
+            }
+
+            if (clickedUnit) {
                 selectedEntity = clickedUnit;
                 return;
             }
 
-            let clickedBuild = buildings.find(b => Math.hypot(b.x - pos.x, b.y - pos.y) < b.r);
-            if (clickedBuild && clickedBuild.side === 'player') {
+            var clickedBuild = null;
+            for (var i = 0; i < buildings.length; i++) {
+                var b = buildings[i];
+                if (getDistance(b.x, b.y, pos.x, pos.y) < b.r && b.side === 'player') {
+                    clickedBuild = b;
+                    break;
+                }
+            }
+
+            if (clickedBuild) {
                 selectedEntity = clickedBuild;
                 return;
             }
 
             if (selectedEntity && selectedEntity.side === 'player' && selectedEntity.task) { 
-                let clickedRes = resourcesOnMap.find(r => Math.hypot(r.x - pos.x, r.y - pos.y) < 25);
-                let clickedEnemyBuild = buildings.find(b => b.side === 'enemy' && Math.hypot(b.x - pos.x, b.y - pos.y) < b.r);
-                let clickedEnemyUnit = units.find(u => u.side === 'enemy' && Math.hypot(u.x - pos.x, u.y - pos.y) < 18);
+                var clickedRes = null;
+                for (var i = 0; i < resourcesOnMap.length; i++) {
+                    if (getDistance(resourcesOnMap[i].x, resourcesOnMap[i].y, pos.x, pos.y) < 25) {
+                        clickedRes = resourcesOnMap[i];
+                        break;
+                    }
+                }
+
+                var clickedEnemyBuild = null;
+                for (var i = 0; i < buildings.length; i++) {
+                    var b = buildings[i];
+                    if (b.side === 'enemy' && getDistance(b.x, b.y, pos.x, pos.y) < b.r) {
+                        clickedEnemyBuild = b;
+                        break;
+                    }
+                }
+
+                var clickedEnemyUnit = null;
+                for (var i = 0; i < units.length; i++) {
+                    var un = units[i];
+                    if (un.side === 'enemy' && getDistance(un.x, un.y, pos.x, pos.y) < 18) {
+                        clickedEnemyUnit = un;
+                        break;
+                    }
+                }
 
                 if (selectedEntity.type === 'villager' && clickedRes) {
                     selectedEntity.targetRes = clickedRes;
@@ -333,7 +383,13 @@
             }
         }
         function spawnSoldier() {
-            let barracks = buildings.find(b => b.type === 'Barracks' && b.side === 'player');
+            var barracks = null;
+            for (var i = 0; i < buildings.length; i++) {
+                if (buildings[i].type === 'Barracks' && buildings[i].side === 'player') {
+                    barracks = buildings[i];
+                    break;
+                }
+            }
             if (barracks && res.food >= 60 && res.gold >= 20) {
                 res.food -= 60;
                 res.gold -= 20;
@@ -341,21 +397,24 @@
             }
         }
 
-        // 后台逻辑驱动
         function updateGame() {
             if (gameOver) return;
-            res.food += 0.015; // 基础流浪低保食物
+            res.food += 0.015;
 
             spawnTimer++;
             if (spawnTimer % 450 === 0) { 
-                let enemyBase = buildings.find(b => b.id === 'enemy-base');
+                var enemyBase = null;
+                for (var i = 0; i < buildings.length; i++) {
+                    if (buildings[i].id === 'enemy-base') { enemyBase = buildings[i]; break; }
+                }
                 if (enemyBase) {
                     units.push({ type: 'soldier', side: 'enemy', x: enemyBase.x, y: enemyBase.y, tx: 200, ty: 250 + (Math.random()-0.5)*150, hp: 100, maxHp: 100, task: 'attack' });
                 }
             }
 
-            units.forEach((u) => {
-                if (Math.hypot(u.tx - u.x, u.ty - u.y) > 4) {
+            for (var i = 0; i < units.length; i++) {
+                var u = units[i];
+                if (getDistance(u.tx, u.ty, u.x, u.y) > 4) {
                     u.x += (u.tx - u.x) * 0.05;
                     u.y += (u.ty - u.y) * 0.05;
                 } else {
@@ -372,7 +431,151 @@
                 }
 
                 if (u.type === 'soldier' || u.task === 'attack') {
-                    let target = u.targetEnemy;
+                    var target = u.targetEnemy;
                     if (!target || target.hp <= 0) {
-                        target = units.find(o => o.side !== u.side && Math.hypot(o.x - u.x, o.y - u.y) < 140) ||
-                                 buildings.find(b => b.side !== u.side && Math.hypot(b.x - u.x, b.y - u.y
+                        for (var j = 0; j < units.length; j++) {
+                            if (units[j].side !== u.side && getDistance(units[j].x, units[j].y, u.x, u.y) < 140) {
+                                target = units[j];
+                                break;
+                            }
+                        }
+                        if (!target) {
+                            for (var k = 0; k < buildings.length; k++) {
+                                if (buildings[k].side !== u.side && getDistance(buildings[k].x, buildings[k].y, u.x, u.y) < 160) {
+                                    target = buildings[k];
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (target && target.hp > 0) {
+                        u.tx = target.x;
+                        u.ty = target.y;
+                        if (getDistance(target.x, target.y, u.x, u.y) < 35) {
+                            target.hp -= u.type === 'soldier' ? 0.8 : 0.25;
+                        }
+                    }
+                }
+            }
+
+            // ES5 级清扫阵亡队列
+            var activeUnits = [];
+            for (var i = 0; i < units.length; i++) { if (units[i].hp > 0) activeUnits.push(units[i]); }
+            units = activeUnits;
+
+            var activeBuildings = [];
+            var tcAlive = false;
+            var enemyBaseAlive = false;
+            for (var i = 0; i < buildings.length; i++) {
+                if (buildings[i].hp > 0) {
+                    activeBuildings.push(buildings[i]);
+                    if (buildings[i].id === 'tc') tcAlive = true;
+                    if (buildings[i].id === 'enemy-base') enemyBaseAlive = true;
+                }
+            }
+            buildings = activeBuildings;
+
+            if (!tcAlive) { gameOver = true; gameWin = false; }
+            if (!enemyBaseAlive) { gameOver = true; gameWin = true; }
+
+            document.getElementById('r-food').innerText = Math.floor(res.food);
+            document.getElementById('r-wood').innerText = Math.floor(res.wood);
+            document.getElementById('r-gold').innerText = Math.floor(res.gold);
+        }
+
+        function renderGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            ctx.scale(canvas.width / GAME_W, canvas.height / GAME_H);
+
+            // 绘制底图细白线网格
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.lineWidth = 1;
+            for(var x=0; x<GAME_W; x+=50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,GAME_H); ctx.stroke(); }
+            for(var y=0; y<GAME_H; y+=50) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(GAME_W,y); ctx.stroke(); }
+
+            // 调试心跳文字
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText('⚡ 引擎核心心跳状态：正常运转 | 帧序: ' + spawnTimer, 20, 25);
+
+            for (var i = 0; i < resourcesOnMap.length; i++) {
+                var r = resourcesOnMap[i];
+                if (r.amt <= 0) continue;
+                ctx.beginPath();
+                if (r.type === 'tree') {
+                    ctx.fillStyle = '#064e3b'; ctx.arc(r.x, r.y, 16, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#22c55e'; ctx.arc(r.x-4, r.y-4, 10, 0, Math.PI*2); ctx.fill();
+                } else {
+                    ctx.fillStyle = '#fbbf24'; ctx.fillRect(r.x-12, r.y-12, 24, 24);
+                    ctx.strokeStyle = '#d97706'; ctx.lineWidth = 2; ctx.stroke();
+                }
+            }
+
+            for (var i = 0; i < buildings.length; i++) {
+                var b = buildings[i];
+                ctx.fillStyle = b.side === 'player' ? '#2563eb' : '#dc2626';
+                ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3; ctx.stroke();
+
+                ctx.fillStyle = '#ffffff'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center';
+                ctx.fillText(b.type, b.x, b.y + 4);
+
+                ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(b.x - b.r, b.y - b.r - 14, b.r*2, 6);
+                ctx.fillStyle = b.side === 'player' ? '#60a5fa' : '#f87171';
+                ctx.fillRect(b.x - b.r, b.y - b.r - 14, (b.r*2) * (b.hp / b.maxHp), 6);
+            }
+
+            for (var i = 0; i < units.length; i++) {
+                var u = units[i];
+                ctx.beginPath(); ctx.arc(u.x, u.y, u.type === 'soldier' ? 11 : 8, 0, Math.PI*2);
+                ctx.fillStyle = u.side === 'player' ? '#3b82f6' : '#ef4444'; ctx.fill();
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+
+                if (u.type === 'soldier') {
+                    ctx.beginPath(); ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 3;
+                    ctx.moveTo(u.x - 4, u.y - 4); ctx.lineTo(u.x + 6, u.y + 6); ctx.stroke();
+                }
+
+                if (u.task === 'gather' && u.targetRes && getDistance(u.x, u.y, u.targetRes.x, u.targetRes.y) < 35) {
+                    ctx.fillStyle = '#ffff00'; ctx.font = '12px sans-serif'; ctx.fillText("⚒️", u.x, u.y - 16);
+                }
+
+                ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(u.x - 10, u.y - 12, 20, 3);
+                ctx.fillStyle = '#22c55e'; ctx.fillRect(u.x - 10, u.y - 12, 20 * (u.hp / u.maxHp), 3);
+            }
+
+            if (selectedEntity && selectedEntity.hp > 0) {
+                ctx.beginPath(); ctx.arc(selectedEntity.x, selectedEntity.y, (selectedEntity.r || 10) + 6, 0, Math.PI*2);
+                ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+            }
+
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0,0,0,0.9)'; ctx.fillRect(0, 0, GAME_W, GAME_H);
+                ctx.fillStyle = gameWin ? '#22c55e' : '#ef4444'; ctx.font = 'bold 32px sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText(gameWin ? "【 帝国大捷！您摧毁了强敌 】" : "【 胜败乃兵家常事，主基地失陷 】", GAME_W/2, GAME_H/2);
+            }
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            updateGame();
+            renderGame();
+            window.requestAnimationFrame(gameLoop);
+        }
+
+        function toggleFullScreen() {
+            document.documentElement.classList.toggle('fullscreen-active');
+            setTimeout(resizeCanvas, 150);
+        }
+
+        initGame();
+        resizeCanvas();
+        gameLoop();
+    </script>
+</body>
+</html>
