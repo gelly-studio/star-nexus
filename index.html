@@ -27,7 +27,7 @@
         /* 顶部资源栏 */
         header {
             background: #0f172a;
-            padding: 8px 16px;
+            padding: 10px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -49,28 +49,35 @@
         .res-wood { color: #10b981; }
         .res-gold { color: #eab308; }
 
-        /* 核心游戏区域（横屏极佳） */
+        /* 核心游戏区域 */
         main {
             flex: 1;
             display: flex;
             position: relative;
             overflow: hidden;
-            background-color: #22c55e; /* 草地背景 */
+            background-color: #15803d; 
         }
 
-        /* 实时Canvas画布 */
-        canvas {
+        /* 绝对定位容纳层：彻底根治Canvas尺寸塌陷 */
+        .canvas-container {
             flex: 1;
-            background: #15803d; /* 绿色战场 */
-            cursor: pointer;
-            width: 100%;
+            position: relative;
             height: 100%;
         }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #15803d; /* 深绿战场 */
+            cursor: pointer;
+        }
 
-        /* 右侧/下方操控指令面板 */
+        /* 右侧操控指令面板 */
         .control-panel {
             width: 160px;
-            background: rgba(15, 23, 42, 0.9);
+            background: rgba(15, 23, 42, 0.95);
             border-left: 2px solid #334155;
             padding: 12px;
             display: flex;
@@ -81,15 +88,19 @@
         @media (max-width: 600px) {
             .control-panel {
                 width: 100%;
-                height: 70px;
+                height: 75px;
                 position: absolute;
                 bottom: 0;
                 left: 0;
                 flex-direction: row;
                 border-left: none;
                 border-top: 2px solid #334155;
-                padding: 6px;
+                padding: 8px;
                 justify-content: space-around;
+                align-items: center;
+            }
+            .canvas-container {
+                margin-bottom: 75px; /* 为底部留出操控空间 */
             }
         }
 
@@ -97,7 +108,7 @@
             background: #2563eb;
             color: white;
             border: none;
-            padding: 8px;
+            padding: 10px 8px;
             border-radius: 6px;
             font-size: 12px;
             font-weight: bold;
@@ -110,38 +121,42 @@
         .btn-build { background: #7c3aed; }
         .btn-build:active { background: #6d28d9; }
 
-        /* 悬浮状态提示 */
+        /* 状态提示 */
         .status-toast {
             position: absolute;
-            top: 50px;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
-            padding: 6px 16px;
+            background: rgba(0,0,0,0.85);
+            padding: 8px 18px;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 13px;
             pointer-events: none;
             color: #67e8f9;
             z-index: 100;
             display: none;
+            border: 1px solid #334155;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <div style="font-size: 14px; font-weight: bold; color: #38bdf8;">微型帝国时代 v1.2</div>
+        <div style="font-size: 14px; font-weight: bold; color: #38bdf8;">微型帝国时代 v1.2.1 Fixed</div>
         <div class="res-group">
             <span class="res-item res-food">🌾 食物: <span id="r-food">200</span></span>
             <span class="res-item res-wood">🪵 木材: <span id="r-wood">150</span></span>
-            <span class="res-item res-gold">🪙 黄金: <span id="r-gold">0</span></span>
+            <span class="res-item res-gold">🪙 黄金: <span id="r-gold">50</span></span>
         </div>
         <button onclick="toggleFullScreen()" style="background:#334155; border:none; color:white; padding:4px 8px; font-size:11px; border-radius:4px;">📱全屏</button>
     </header>
 
     <main>
         <div class="status-toast" id="toast">请在战场草地上点击位置安放建筑...</div>
-        <canvas id="gameCanvas"></canvas>
+        
+        <div class="canvas-container" id="canvasBox">
+            <canvas id="gameCanvas"></canvas>
+        </div>
         
         <div class="control-panel">
             <button class="cmd-btn" id="btn-spawn-v" onclick="spawnVillager()">训练村民 (🌾50)</button>
@@ -153,12 +168,12 @@
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const canvasBox = document.getElementById('canvasBox');
 
-        // 逻辑分辨率固定为 900x500，Canvas会自动拉伸缩放
+        // 逻辑分辨率固定为 900x500
         const GAME_W = 900;
         const GAME_H = 500;
         
-        // 游戏状态
         let res = { food: 200, wood: 150, gold: 50 };
         let units = [];
         let buildings = [];
@@ -169,15 +184,14 @@
         let gameWin = false;
         let spawnTimer = 0;
 
-        // 初始化Canvas尺寸适配
+        // 智能获取父级容器真实尺寸，规避0宽高灾难
         function resizeCanvas() {
-            canvas.width = canvas.clientWidth;
-            canvas.height = canvas.clientHeight;
+            canvas.width = canvasBox.clientWidth || window.innerWidth;
+            canvas.height = canvasBox.clientHeight || (window.innerHeight - 120);
         }
         window.addEventListener('resize', resizeCanvas);
-        setTimeout(resizeCanvas, 100);
+        window.addEventListener('orientationchange', () => { setTimeout(resizeCanvas, 200); });
 
-        // 辅助函数：将屏幕点击坐标映射到 900x500 的游戏逻辑坐标中
         function getLogicalClick(e) {
             const rect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -188,200 +202,14 @@
             };
         }
 
-        // 初始化地图元素
         function initGame() {
             // 玩家城镇中心 (TC)
             buildings.push({ id: 'tc', type: 'TC', side: 'player', x: 100, y: 250, r: 40, hp: 1000, maxHp: 1000 });
             // 敌方大本营
             buildings.push({ id: 'enemy-base', type: 'Base', side: 'enemy', x: 800, y: 250, r: 40, hp: 1200, maxHp: 1200 });
 
-            // 刷出资源点：树木(Wood)与金矿(Gold)
-            for(let i=0; i<6; i++) {
-                resourcesOnMap.push({ type: 'tree', x: 250 + Math.random()*100, y: 80 + Math.random()*340, amt: 500 });
-                resourcesOnMap.push({ type: 'gold', x: 150 + Math.random()*150, y: 350 + Math.random()*100, amt: 500 });
-            }
-
-            // 默认送2个村民
-            units.push({ type: 'villager', side: 'player', x: 120, y: 200, tx: 120, ty: 200, hp: 50, maxHp: 50, targetRes: null, task: 'idle' });
-            units.push({ type: 'villager', side: 'player', x: 120, y: 300, tx: 120, ty: 300, hp: 50, maxHp: 50, targetRes: null, task: 'idle' });
-        }
-
-        // 点击/触摸核心操控逻辑
-        function handleInteraction(e) {
-            if (gameOver) return;
-            const pos = getLogicalClick(e);
-
-            // 1. 如果处于建造模式，点击则是安放兵营
-            if (buildMode) {
-                if (res.wood >= 100) {
-                    res.wood -= 100;
-                    buildings.push({ id: 'barracks_' + Date.now(), type: 'Barracks', side: 'player', x: pos.x, y: pos.y, r: 30, hp: 500, maxHp: 500 });
-                    document.getElementById('btn-spawn-s').disabled = false;
-                }
-                buildMode = false;
-                document.getElementById('toast').style.display = 'none';
-                return;
-            }
-
-            // 2. 检查是否点击了某个人类单位（选择单位）
-            let clickedUnit = units.find(u => Math.hypot(u.x - pos.x, u.y - pos.y) < 20);
-            if (clickedUnit && clickedUnit.side === 'player') {
-                selectedEntity = clickedUnit;
-                return;
-            }
-
-            // 3. 检查是否点击了建筑
-            let clickedBuild = buildings.find(b => Math.hypot(b.x - pos.x, b.y - pos.y) < b.r);
-            if (clickedBuild && clickedBuild.side === 'player') {
-                selectedEntity = clickedBuild;
-                return;
-            }
-
-            // 4. 如果已经选中了一个我方单位，此时点击空地、资源或敌人，则是下达“行动命令”
-            if (selectedEntity && selectedEntity.side === 'player' && !selectedEntity.type.toUpperCase) { 
-                // 指向资源点
-                let clickedRes = resourcesOnMap.find(r => Math.hypot(r.x - pos.x, r.y - pos.y) < 25);
-                // 指向敌方建筑
-                let clickedEnemyBuild = buildings.find(b => b.side === 'enemy' && Math.hypot(b.x - pos.x, b.y - pos.y) < b.r);
-                // 指向敌人单位
-                let clickedEnemyUnit = units.find(u => u.side === 'enemy' && Math.hypot(u.x - pos.x, u.y - pos.y) < 15);
-
-                if (selectedEntity.type === 'villager' && clickedRes) {
-                    // 村民去采矿/砍树
-                    selectedEntity.targetRes = clickedRes;
-                    selectedEntity.targetEnemy = null;
-                    selectedEntity.tx = clickedRes.x;
-                    selectedEntity.ty = clickedRes.y;
-                    selectedEntity.task = 'gather';
-                } else if (clickedEnemyUnit || clickedEnemyBuild) {
-                    // 战斗单位或村民去进攻
-                    selectedEntity.targetEnemy = clickedEnemyUnit || clickedEnemyBuild;
-                    selectedEntity.targetRes = null;
-                    selectedEntity.tx = (clickedEnemyUnit || clickedEnemyBuild).x;
-                    selectedEntity.ty = (clickedEnemyUnit || clickedEnemyBuild).y;
-                    selectedEntity.task = 'attack';
-                } else {
-                    // 纯移动命令
-                    selectedEntity.tx = pos.x;
-                    selectedEntity.ty = pos.y;
-                    selectedEntity.targetRes = null;
-                    selectedEntity.targetEnemy = null;
-                    selectedEntity.task = 'move';
-                }
-            }
-        }
-
-        canvas.addEventListener('mousedown', handleInteraction);
-        canvas.addEventListener('touchstart', function(e) { e.preventDefault(); handleInteraction(e); });
-
-        // 按钮指令
-        function spawnVillager() {
-            if (res.food >= 50) {
-                res.food -= 50;
-                units.push({ type: 'villager', side: 'player', x: 100, y: 250, tx: 140 + Math.random()*40, ty: 230 + Math.random()*40, hp: 50, maxHp: 50, targetRes: null, task: 'idle' });
-            }
-        }
-        function enterBuildMode() {
-            if (res.wood >= 100) {
-                buildMode = true;
-                document.getElementById('toast').style.display = 'block';
-            }
-        }
-        function spawnSoldier() {
-            let barracks = buildings.find(b => b.type === 'Barracks' && b.side === 'player');
-            if (barracks && res.food >= 60 && res.gold >= 20) {
-                res.food -= 60;
-                res.gold -= 20;
-                units.push({ type: 'soldier', side: 'player', x: barracks.x, y: barracks.y, tx: barracks.x + 40, ty: barracks.y + 40, hp: 120, maxHp: 120, task: 'idle' });
-            }
-        }
-
-        // 游戏核心循环逻辑处理
-        function updateGame() {
-            if (gameOver) return;
-
-            // 资源随时间极微量自动产出（低保数值，防止玩家卡死）
-            res.food += 0.02;
-
-            // 简易敌军 AI 进攻波次生成器
-            spawnTimer++;
-            if (spawnTimer % 450 === 0) { // 每隔数秒刷一波敌人
-                let enemyBase = buildings.find(b => b.id === 'enemy-base');
-                if (enemyBase) {
-                    units.push({ type: 'soldier', side: 'enemy', x: enemyBase.x, y: enemyBase.y, tx: 100, ty: 250 + (Math.random()-0.5)*100, hp: 100, maxHp: 100, task: 'attack' });
-                }
-            }
-
-            // 更新单位行为
-            units.forEach((u, index) => {
-                // 移动行为
-                if (Math.hypot(u.tx - u.x, u.ty - u.y) > 4) {
-                    u.x += (u.tx - u.x) * 0.04;
-                    u.y += (u.ty - u.y) * 0.04;
-                } else {
-                    // 到达目的地后的衍生行为
-                    if (u.type === 'villager' && u.task === 'gather' && u.targetRes) {
-                        if (u.targetRes.amt > 0) {
-                            u.targetRes.amt -= 0.5;
-                            if (u.targetRes.type === 'tree') res.wood += 0.4;
-                            if (u.targetRes.type === 'gold') res.gold += 0.4;
-                        } else {
-                            u.task = 'idle';
-                            u.targetRes = null;
-                        }
-                    }
-                }
-
-                // 自动交战判定
-                if (u.type === 'soldier' || u.task === 'attack') {
-                    // 寻找敌方阵营目标
-                    let target = u.targetEnemy;
-                    if (!target) {
-                        // 自动搜寻附近最近的异军单位
-                        target = units.find(o => o.side !== u.side && Math.hypot(o.x - u.x, o.y - u.y) < 120) ||
-                                 buildings.find(b => b.side !== u.side && Math.hypot(b.x - u.x, b.y - u.y) < 150);
-                    }
-
-                    if (target && target.hp > 0) {
-                        // 靠拢目标
-                        u.tx = target.x;
-                        u.ty = target.y;
-                        // 近身开始互砍扣血
-                        if (Math.hypot(target.x - u.x, target.y - u.y) < 35) {
-                            target.hp -= u.type === 'soldier' ? 0.8 : 0.2; // 步兵攻击力比工人高
-                        }
-                    }
-                }
-            });
-
-            // 清理阵亡单位与被毁建筑
-            units = units.filter(u => u.hp > 0);
-            
-            let tcAlive = buildings.find(b => b.id === 'tc' && b.hp > 0);
-            let enemyBaseAlive = buildings.find(b => b.id === 'enemy-base' && b.hp > 0);
-            buildings = buildings.filter(b => b.hp > 0);
-
-            if (!tcAlive) { gameOver = true; gameWin = false; }
-            if (!enemyBaseAlive) { gameOver = true; gameWin = true; }
-
-            // 同步UI文字数据
-            document.getElementById('r-food').innerText = Math.floor(res.food);
-            document.getElementById('r-wood').innerText = Math.floor(res.wood);
-            document.getElementById('r-gold').innerText = Math.floor(res.gold);
-        }
-
-        // 全程高动态 Canvas 场景渲染
-        function renderGame() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // 锁定画布分辨率比例缩放转换
-            ctx.save();
-            ctx.scale(canvas.width / GAME_W, canvas.height / GAME_H);
-
-            // 1. 绘制草地网格背景线
-            ctx.strokeStyle = 'rgba(21, 128, 61, 0.3)';
-            ctx.lineWidth = 1;
-            for(let x=0; x<GAME_W; x+=50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,GAME_H); ctx.stroke(); }
-            for(let y=0; y<GAME_H; y+=50) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(GAME_W,y); ctx.stroke(); }
-
-            // 2. 绘制静态资源点 (树木林
+            // 刷出资源点
+            for(let i=0; i<5; i++) {
+                resourcesOnMap.push({ type: 'tree', x: 260 + Math.random()*80, y: 60 + Math.random()*140, amt: 600 });
+                resourcesOnMap.push({ type: 'tree', x: 260 + Math.random()*80, y: 300 + Math.random()*140, amt: 600 });
+                resourcesOnMap.push
