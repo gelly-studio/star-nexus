@@ -3,886 +3,385 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>星穹之邦：源晶逆袭 (Aetheria: Nexus Defense & Raid)</title>
-    
-    <!-- 移动端全屏/PWA 沉浸式独立应用配置 -->
+    <title>微型帝国时代：口袋战役 (Mini AOE)</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0b0f19">
-
     <style>
-        :root {
-            --bg-dark: #0b0f19;
-            --panel-bg: rgba(22, 30, 49, 0.75);
-            --panel-border: rgba(56, 189, 248, 0.2);
-            --primary: #38bdf8;
-            --primary-glow: rgba(56, 189, 248, 0.4);
-            --accent: #a855f7;
-            --accent-glow: rgba(168, 85, 247, 0.4);
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-        }
-
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             user-select: none;
             -webkit-user-select: none;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            /* 优化移动端点击高亮 */
+            font-family: 'PingFang SC', system-ui, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
-
         body {
-            background-color: var(--bg-dark);
-            background-image: 
-                radial-gradient(white, rgba(255,255,255,.15) 2px, transparent 40px),
-                radial-gradient(white, rgba(255,255,255,.1) 1px, transparent 30px);
-            background-size: 350px 350px, 250px 250px;
-            background-position: 0 0, 130px 270px;
-            color: var(--text-main);
+            background-color: #1e293b;
+            color: #fff;
             overflow: hidden;
             height: 100vh;
             display: flex;
             flex-direction: column;
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
-            padding-left: env(safe-area-inset-left);
-            padding-right: env(safe-area-inset-right);
         }
-
-        /* Top Resource Bar */
+        /* 顶部资源栏 */
         header {
-            background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.7) 100%);
-            border-bottom: 1px solid var(--panel-border);
-            padding: 12px 20px;
+            background: #0f172a;
+            padding: 8px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            border-bottom: 2px solid #334155;
             z-index: 10;
-            flex-wrap: wrap;
-            gap: 10px;
         }
-
-        .brand-container {
+        .res-group {
             display: flex;
-            align-items: center;
-            gap: 12px;
+            gap: 16px;
         }
-
-        .brand {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .brand h1 {
-            font-size: 16px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 20px var(--primary-glow);
-        }
-
-        .brand span {
-            font-size: 10px;
-            color: var(--text-muted);
-            letter-spacing: 0.5px;
-        }
-
-        .resources {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
         .res-item {
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 6px 12px;
-            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
             display: flex;
             align-items: center;
-            gap: 6px;
-            min-width: 105px;
-            position: relative;
+            gap: 4px;
         }
+        .res-food { color: #f59e0b; }
+        .res-wood { color: #10b981; }
+        .res-gold { color: #eab308; }
 
-        .res-item::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 2px;
-            width: 100%;
-        }
-        .res-aether::after { background-color: var(--primary); }
-        .res-ironwood::after { background-color: var(--warning); }
-        .res-fleet::after { background-color: var(--accent); }
-
-        .res-label {
-            font-size: 10px;
-            color: var(--text-muted);
-            display: block;
-        }
-
-        .res-val {
-            font-size: 14px;
-            font-weight: 600;
-            font-family: monospace;
-        }
-
-        /* Main Game Layout */
+        /* 核心游戏区域（横屏极佳） */
         main {
             flex: 1;
             display: flex;
-            padding: 12px;
-            gap: 12px;
+            position: relative;
             overflow: hidden;
+            background-color: #22c55e; /* 草地背景 */
         }
 
-        /* Sidebar Tabs Navigation */
-        .nav-panel {
-            width: 76px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .nav-btn {
-            background: var(--panel-bg);
-            border: 1px solid var(--panel-border);
-            color: var(--text-muted);
-            padding: 12px 0;
-            border-radius: 12px;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            font-size: 11px;
-            transition: all 0.2s ease;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-
-        .nav-btn svg {
-            width: 22px;
-            height: 22px;
-            fill: currentColor;
-        }
-
-        .nav-btn:hover, .nav-btn.active {
-            color: var(--primary);
-            border-color: var(--primary);
-            background: rgba(56, 189, 248, 0.1);
-            box-shadow: 0 0 12px rgba(56, 189, 248, 0.15);
-        }
-
-        .nav-btn.active {
-            color: var(--accent);
-            border-color: var(--accent);
-            background: rgba(168, 85, 247, 0.1);
-            box-shadow: 0 0 12px rgba(168, 85, 247, 0.15);
-        }
-
-        /* Central Content Window */
-        .content-panel {
+        /* 实时Canvas画布 */
+        canvas {
             flex: 1;
-            background: var(--panel-bg);
-            border: 1px solid var(--panel-border);
-            border-radius: 16px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-
-        .tab-content {
-            display: none;
+            background: #15803d; /* 绿色战场 */
+            cursor: pointer;
+            width: 100%;
             height: 100%;
-            flex-direction: column;
         }
 
-        .tab-content.active {
-            display: flex;
-        }
-
-        .section-title {
-            font-size: 16px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border-left: 4px solid var(--primary);
-            padding-left: 8px;
-        }
-
-        /* Grid View for Base Building */
-        .base-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .build-card {
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 14px;
+        /* 右侧/下方操控指令面板 */
+        .control-panel {
+            width: 160px;
+            background: rgba(15, 23, 42, 0.9);
+            border-left: 2px solid #334155;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            transition: all 0.2s ease;
+            gap: 10px;
+            z-index: 5;
+        }
+        @media (max-width: 600px) {
+            .control-panel {
+                width: 100%;
+                height: 70px;
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                flex-direction: row;
+                border-left: none;
+                border-top: 2px solid #334155;
+                padding: 6px;
+                justify-content: space-around;
+            }
         }
 
-        .build-card:hover {
-            border-color: var(--primary);
-            background: rgba(15, 23, 42, 0.7);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 6px;
-        }
-
-        .card-title {
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .card-lvl {
-            background: rgba(56, 189, 248, 0.15);
-            color: var(--primary);
-            font-size: 10px;
-            padding: 2px 5px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-
-        .card-desc {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-            line-height: 1.4;
-        }
-
-        .card-cost {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-            background: rgba(0, 0, 0, 0.2);
-            padding: 6px;
-            border-radius: 6px;
-        }
-
-        .cost-val.shortage {
-            color: var(--danger);
-        }
-
-        .action-btn {
-            background: linear-gradient(90deg, var(--primary), #0284c7);
-            border: none;
+        .cmd-btn {
+            background: #2563eb;
             color: white;
-            padding: 8px 12px;
+            border: none;
+            padding: 8px;
             border-radius: 6px;
-            cursor: pointer;
             font-size: 12px;
-            font-weight: 600;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 6px;
-            transition: opacity 0.2s;
-        }
-
-        .action-btn:hover { opacity: 0.9; }
-        .action-btn:disabled {
-            background: #334155 !important;
-            color: #64748b;
-            cursor: not-allowed;
-        }
-
-        /* Raid Map Sector List */
-        .raid-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .raid-item {
-            background: rgba(15, 23, 42, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .raid-info h3 {
-            font-size: 14px;
-            margin-bottom: 3px;
-        }
-        
-        .raid-danger {
-            font-size: 10px;
-            padding: 1px 5px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-bottom: 4px;
             font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-align: center;
         }
-        .danger-low { background: rgba(16, 185, 129, 0.2); color: var(--success); }
-        .danger-med { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
-        .danger-high { background: rgba(239, 68, 116, 0.2); color: var(--danger); }
+        .cmd-btn:active { background: #1d4ed8; }
+        .cmd-btn:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; }
+        .btn-build { background: #7c3aed; }
+        .btn-build:active { background: #6d28d9; }
 
-        .raid-loot {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        .btn-raid { background: linear-gradient(90deg, var(--accent), #7e22ce); }
-
-        /* Cultivation Panel */
-        .hero-panel {
-            display: flex;
-            gap: 16px;
-            background: rgba(15, 23, 42, 0.4);
-            border-radius: 12px;
-            padding: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.03);
-            margin-bottom: 16px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .hero-avatar {
-            width: 64px;
-            height: 64px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
-        }
-
-        .hero-avatar svg { width: 36px; height: 36px; fill: white; }
-
-        .hero-stats {
-            flex: 1;
-            min-width: 150px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .hero-name { font-size: 16px; font-weight: bold; }
-        .hero-rank { font-size: 11px; color: var(--accent); font-weight: 600; letter-spacing: 0.5px;}
-
-        /* Right Terminal Console / Logs */
-        .log-panel {
-            width: 260px;
-            background: rgba(10, 15, 26, 0.85);
-            border: 1px solid var(--panel-border);
-            border-radius: 16px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        /* 移动端适配：屏幕窄时隐藏右侧日志栏，腾出空间 */
-        @media (max-width: 768px) {
-            .log-panel { display: none; }
-            header { padding: 8px 12px; }
-            main { padding: 8px; gap: 8px; }
-            .nav-panel { width: 64px; }
-            .nav-btn { padding: 10px 0; font-size: 10px; }
-        }
-
-        .log-header {
-            padding: 10px 14px;
-            background: rgba(15, 23, 42, 0.8);
+        /* 悬浮状态提示 */
+        .status-toast {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 6px 16px;
+            border-radius: 20px;
             font-size: 12px;
-            font-weight: 600;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .log-body {
-            flex: 1;
-            padding: 10px;
-            font-family: monospace;
-            font-size: 11px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .log-item { padding-bottom: 4px; border-bottom: 1px dashed rgba(255, 255, 255, 0.03); }
-        .log-system { color: var(--text-muted); }
-        .log-success { color: var(--success); }
-        .log-warning { color: var(--warning); }
-        .log-danger { color: var(--danger); }
-
-        /* Interactive Canvas Overlay for Battles */
-        .battle-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(5, 8, 15, 0.96);
+            pointer-events: none;
+            color: #67e8f9;
             z-index: 100;
             display: none;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            padding: 10px;
         }
-
-        .battle-container {
-            width: 100%;
-            max-width: 800px;
-            background: var(--bg-dark);
-            border: 2px solid var(--accent);
-            box-shadow: 0 0 30px rgba(168, 85, 247, 0.4);
-            border-radius: 16px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .battle-canvas-wrapper {
-            position: relative;
-            width: 100%;
-            height: 0;
-            padding-bottom: 50%; /* 2:1 宽高比自适应 */
-            background: #05070f;
-        }
-
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        .battle-header {
-            padding: 12px 16px;
-            background: rgba(168, 85, 247, 0.1);
-            border-bottom: 1px solid rgba(168, 85, 247, 0.2);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-        }
-
-        .battle-title { font-size: 14px; font-weight: bold; }
-
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
     </style>
 </head>
 <body>
 
-    <!-- Top Resource Bar -->
     <header>
-        <div class="brand-container">
-            <div class="brand">
-                <h1>AETHERIA: NEXUS</h1>
-                <span>星穹之邦：源晶逆袭 v1.1.0 Mobile+</span>
-            </div>
-            <!-- 全屏触发器按钮 -->
-            <button onclick="toggleFullScreen()" class="action-btn" style="padding: 5px 10px; font-size: 11px; background: linear-gradient(90deg, #10b981, #059669); box-shadow: 0 0 10px rgba(16,185,129,0.2);">
-                📱 全屏视野
-            </button>
+        <div style="font-size: 14px; font-weight: bold; color: #38bdf8;">微型帝国时代 v1.2</div>
+        <div class="res-group">
+            <span class="res-item res-food">🌾 食物: <span id="r-food">200</span></span>
+            <span class="res-item res-wood">🪵 木材: <span id="r-wood">150</span></span>
+            <span class="res-item res-gold">🪙 黄金: <span id="r-gold">0</span></span>
         </div>
-        <div class="resources">
-            <div class="res-item res-aether">
-                <div>
-                    <span class="res-label">源能星晶 (Aether)</span>
-                    <span class="res-val" id="res-aether">500</span>
-                </div>
-            </div>
-            <div class="res-item res-ironwood">
-                <div>
-                    <span class="res-label">黑钛铁木 (Ironwood)</span>
-                    <span class="res-val" id="res-ironwood">300</span>
-                </div>
-            </div>
-            <div class="res-item res-fleet">
-                <div>
-                    <span class="res-label">远征星舰 (Fleet)</span>
-                    <span class="res-val" id="res-fleet">0</span>
-                </div>
-            </div>
-        </div>
+        <button onclick="toggleFullScreen()" style="background:#334155; border:none; color:white; padding:4px 8px; font-size:11px; border-radius:4px;">📱全屏</button>
     </header>
 
-    <!-- Main Game Window -->
     <main>
-        <!-- Sidebar Navigation Tabs -->
-        <div class="nav-panel">
-            <button class="nav-btn active" onclick="switchTab('tab-base')">
-                <svg viewBox="0 0 24 24"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3zm0 4.25l4.5 4.05v6.2h-2.5v-6h-4v6H6.5v-6.2L11 7.25z"/></svg>
-                基地建设
-            </button>
-            <button class="nav-btn" onclick="switchTab('tab-fleet')">
-                <svg viewBox="0 0 24 24"><path d="M12 2L2 19h6l1-3h6l1 3h6L12 2zm0 3.6l3.6 6.4H8.4L12 5.6zM10.25 14l-.67 2h4.84l-.67-2h-3.5z"/></svg>
-                舰队整编
-            </button>
-            <button class="nav-btn" onclick="switchTab('tab-map')">
-                <svg viewBox="0 0 24 24"><path d="M20.5 3l-6.5 2.7-6-2.7L2 5.7V21l6.5-2.7 6 2.7 6-2.7V3zM8.5 5.5l5 2.25v12.75l-5-2.25V5.5zM4 7.15l3-1.25v12.4l-3 1.25V7.15zm16 9.7l-3 1.25V5.7l3-1.25v12.4z"/></svg>
-                星域掠夺
-            </button>
-        </div>
-
-        <!-- Central Working Window -->
-        <div class="content-panel">
-            <!-- TAB 1: Base Matrix -->
-            <div id="tab-base" class="tab-content active">
-                <div class="section-title">核心基地矩阵</div>
-                <div class="base-grid" id="building-grid"></div>
-            </div>
-
-            <!-- TAB 2: Fleet Cultivation -->
-            <div id="tab-fleet" class="tab-content">
-                <div class="section-title">主宰进化与星舰扩编</div>
-                <div class="hero-panel">
-                    <div class="hero-avatar">
-                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                    </div>
-                    <div class="hero-stats">
-                        <div class="hero-name" id="hero-name">虚空指挥官 · 迦罗</div>
-                        <div class="hero-rank" id="hero-rank">星域级 阶位 I</div>
-                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">全军战力加成: <span id="hero-bonus" style="color:var(--primary); font-weight:bold;">+0%</span></div>
-                    </div>
-                    <button class="action-btn btn-raid" onclick="upgradeHero()" id="btn-upgrade-hero">晋升阶位</button>
-                </div>
-
-                <div class="section-title">星舰船坞</div>
-                <div class="base-grid">
-                    <div class="build-card">
-                        <div class="card-header">
-                            <span class="card-title">“无畏级”截击舰</span>
-                            <span class="card-lvl" id="ship-count">0 艘</span>
-                        </div>
-                        <p class="card-desc">轻量高速打击群，专为跨星域资源掠夺和骚扰敌方外围防御设计。</p>
-                        <div class="card-cost">
-                            消耗: <span id="ship-cost-aether">80</span> 源晶 / <span id="ship-cost-ironwood">40</span> 铁木
-                        </div>
-                        <button class="action-btn" onclick="buildShip()">建造星舰 (+1 基础战斗力)</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 3: Stellar Map -->
-            <div id="tab-map" class="tab-content">
-                <div class="section-title">未探索星域与掠夺目标</div>
-                <div class="raid-list" id="raid-sectors"></div>
-            </div>
-        </div>
-
-        <!-- Right Terminal Logs -->
-        <div class="log-panel">
-            <div class="log-header">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
-                战术指引终端
-            </div>
-            <div class="log-body" id="log-box">
-                <div class="log-item log-system">[系统] 核心控制台网络握手成功。</div>
-                <div class="log-item log-warning">[提议] 优先升级产能建筑，积攒战备资源。</div>
-            </div>
+        <div class="status-toast" id="toast">请在战场草地上点击位置安放建筑...</div>
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="control-panel">
+            <button class="cmd-btn" id="btn-spawn-v" onclick="spawnVillager()">训练村民 (🌾50)</button>
+            <button class="cmd-btn btn-build" id="btn-mode-b" onclick="enterBuildMode()">建造兵营 (🪵100)</button>
+            <button class="cmd-btn" id="btn-spawn-s" onclick="spawnSoldier()" disabled>训练步兵 (🌾60 🪙20)</button>
         </div>
     </main>
 
-    <!-- Canvas Battle Animation Overlay -->
-    <div class="battle-overlay" id="battle-screen">
-        <div class="battle-container">
-            <div class="battle-header">
-                <span class="battle-title" id="battle-screen-title">正在向目标坐标破空折跃...</span>
-                <span id="battle-timer" style="font-family:monospace; color:var(--accent);">计算中...</span>
-            </div>
-            <div class="battle-canvas-wrapper">
-                <!-- 预设画布固定的逻辑分辨率，通过 CSS 完美缩放防模糊 -->
-                <canvas id="battleCanvas" width="800" height="400"></canvas>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // Game State Core Data 
-        let state = {
-            resources: { aether: 500, ironwood: 300, fleet: 0 },
-            buildings: {
-                extractor: { name: "源晶萃取器", lvl: 1, baseCostA: 100, baseCostI: 50, rate: 2 },
-                logger: { name: "磁力伐木场", lvl: 1, baseCostA: 60, baseCostI: 80, rate: 1 },
-                turret: { name: "等离子防御塔", lvl: 0, baseCostA: 200, baseCostI: 150, rate: 15 },
-            },
-            hero: { lvl: 1, bonus: 0 },
-            shipCost: { aether: 80, ironwood: 40 }
-        };
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
 
-        const sectors = [
-            { id: 1, name: "微型流浪陨石带", danger: "low", dangerTxt: "低度危险", reqFleet: 1, lootA: 150, lootI: 100 },
-            { id: 2, name: "半人马座星际海盗营地", danger: "med", dangerTxt: "中度危险", reqFleet: 5, lootA: 600, lootI: 400 },
-            { id: 3, name: "帝国边缘备用补给库", danger: "high", dangerTxt: "高度危险", reqFleet: 15, lootA: 2500, lootI: 1500 }
-        ];
+        // 逻辑分辨率固定为 900x500，Canvas会自动拉伸缩放
+        const GAME_W = 900;
+        const GAME_H = 500;
+        
+        // 游戏状态
+        let res = { food: 200, wood: 150, gold: 50 };
+        let units = [];
+        let buildings = [];
+        let resourcesOnMap = [];
+        let selectedEntity = null;
+        let buildMode = false;
+        let gameOver = false;
+        let gameWin = false;
+        let spawnTimer = 0;
 
-        // Persistent Data Load
-        if (localStorage.getItem('aetheria_nexus_save_v11')) {
-            try {
-                const savedState = JSON.parse(localStorage.getItem('aetheria_nexus_save_v11'));
-                if (savedState) state = savedState;
-            } catch(e) { console.log("Save load failed, default state loaded."); }
+        // 初始化Canvas尺寸适配
+        function resizeCanvas() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        setTimeout(resizeCanvas, 100);
+
+        // 辅助函数：将屏幕点击坐标映射到 900x500 的游戏逻辑坐标中
+        function getLogicalClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: ((clientX - rect.left) / rect.width) * GAME_W,
+                y: ((clientY - rect.top) / rect.height) * GAME_H
+            };
         }
 
-        // Tickers logic
-        setInterval(() => {
-            state.resources.aether += (state.buildings.extractor.lvl * state.buildings.extractor.rate) * 0.2;
-            state.resources.ironwood += (state.buildings.logger.lvl * state.buildings.logger.rate) * 0.2;
-            updateUI();
-        }, 200);
+        // 初始化地图元素
+        function initGame() {
+            // 玩家城镇中心 (TC)
+            buildings.push({ id: 'tc', type: 'TC', side: 'player', x: 100, y: 250, r: 40, hp: 1000, maxHp: 1000 });
+            // 敌方大本营
+            buildings.push({ id: 'enemy-base', type: 'Base', side: 'enemy', x: 800, y: 250, r: 40, hp: 1200, maxHp: 1200 });
 
-        // Auto Save Routine
-        setInterval(() => {
-            localStorage.setItem('aetheria_nexus_save_v11', JSON.stringify(state));
-            pushLog("[系统] 跨位图星系存档自动保存成功。", "system");
-        }, 8000);
-
-        function updateUI() {
-            document.getElementById('res-aether').innerText = Math.floor(state.resources.aether);
-            document.getElementById('res-ironwood').innerText = Math.floor(state.resources.ironwood);
-            document.getElementById('res-fleet').innerText = state.resources.fleet;
-
-            // Render Buildings Grid
-            const grid = document.getElementById('building-grid');
-            grid.innerHTML = '';
-            for (let id in state.buildings) {
-                const b = state.buildings[id];
-                const costA = Math.floor(b.baseCostA * Math.pow(1.55, b.lvl));
-                const costI = Math.floor(b.baseCostI * Math.pow(1.55, b.lvl));
-                const canAfford = state.resources.aether >= costA && state.resources.ironwood >= costI;
-                
-                let desc = id === 'extractor' ? `自动精炼星晶能源，基础产能: +${b.lvl * b.rate}/秒` :
-                           id === 'logger' ? `空间锚定收割铁木，基础产能: +${b.lvl * b.rate}/秒` :
-                           `高能矩阵防卫，保障领地绝对安全级: ${b.lvl * b.rate}`;
-
-                grid.innerHTML += `
-                    <div class="build-card">
-                        <div class="card-header">
-                            <span class="card-title">${b.name}</span>
-                            <span class="card-lvl">Lv.${b.lvl}</span>
-                        </div>
-                        <p class="card-desc">${desc}</p>
-                        <div class="card-cost">
-                            升级需: <span class="${state.resources.aether < costA ? 'shortage' : ''}">${costA}源晶</span> / 
-                            <span class="${state.resources.ironwood < costI ? 'shortage' : ''}">${costI}铁木</span>
-                        </div>
-                        <button class="action-btn" ${canAfford ? '' : 'disabled'} onclick="upgradeBuilding('${id}', ${costA}, ${costI})">
-                            矩阵升级
-                        </button>
-                    </div>
-                `;
+            // 刷出资源点：树木(Wood)与金矿(Gold)
+            for(let i=0; i<6; i++) {
+                resourcesOnMap.push({ type: 'tree', x: 250 + Math.random()*100, y: 80 + Math.random()*340, amt: 500 });
+                resourcesOnMap.push({ type: 'gold', x: 150 + Math.random()*150, y: 350 + Math.random()*100, amt: 500 });
             }
 
-            // Cultivation info Updates
-            document.getElementById('ship-count').innerText = `${state.resources.fleet} 艘`;
-            document.getElementById('hero-rank').innerText = `星域级 阶位 ${state.hero.lvl}`;
-            document.getElementById('hero-bonus').innerText = `+${state.hero.bonus}%`;
-            document.getElementById('btn-upgrade-hero').innerText = `晋升阶位 (需${state.hero.lvl * 500}源晶)`;
-
-            // Render Raid Objectives Map
-            const mapContainer = document.getElementById('raid-sectors');
-            mapContainer.innerHTML = '';
-            sectors.forEach(s => {
-                const totalPower = state.resources.fleet * (1 + state.hero.bonus/100);
-                const winRate = Math.min(100, Math.floor((totalPower / (s.reqFleet || 1)) * 100));
-                
-                mapContainer.innerHTML += `
-                    <div class="raid-item">
-                        <div class="raid-info">
-                            <h3>${s.name}</h3>
-                            <span class="raid-danger danger-${s.danger}">${s.dangerTxt} (推荐战力: ${s.reqFleet})</span>
-                            <div class="raid-loot">战利品密档: <span style="color:var(--primary); font-weight:bold;">${s.lootA}源晶</span> / <span style="color:var(--warning); font-weight:bold;">${s.lootI}铁木</span></div>
-                        </div>
-                        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-                            <span style="font-size:11px; color:var(--text-muted);">克敌胜率: <span style="color:${winRate > 75 ? 'var(--success)' : winRate > 45 ? 'var(--warning)' : 'var(--danger)'}; font-weight:bold;">${winRate}%</span></span>
-                            <button class="action-btn btn-raid" ${state.resources.fleet > 0 ? '' : 'disabled'} onclick="startRaid(${s.id})">战舰出击</button>
-                        </div>
-                    </div>
-                `;
-            });
+            // 默认送2个村民
+            units.push({ type: 'villager', side: 'player', x: 120, y: 200, tx: 120, ty: 200, hp: 50, maxHp: 50, targetRes: null, task: 'idle' });
+            units.push({ type: 'villager', side: 'player', x: 120, y: 300, tx: 120, ty: 300, hp: 50, maxHp: 50, targetRes: null, task: 'idle' });
         }
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
-        }
+        // 点击/触摸核心操控逻辑
+        function handleInteraction(e) {
+            if (gameOver) return;
+            const pos = getLogicalClick(e);
 
-        function upgradeBuilding(id, costA, costI) {
-            if (state.resources.aether >= costA && state.resources.ironwood >= costI) {
-                state.resources.aether -= costA;
-                state.resources.ironwood -= costI;
-                state.buildings[id].lvl++;
-                pushLog(`[建筑] ${state.buildings[id].name} 迭代至级 Lv.${state.buildings[id].lvl}`, "success");
-                updateUI();
-            }
-        }
-
-        function buildShip() {
-            if (state.resources.aether >= state.shipCost.aether && state.resources.ironwood >= state.shipCost.ironwood) {
-                state.resources.aether -= state.shipCost.aether;
-                state.resources.ironwood -= state.shipCost.ironwood;
-                state.resources.fleet++;
-                pushLog(`[军备] 船坞质检通过，交付一艘“无畏级”截击舰！`, "success");
-                updateUI();
-            } else {
-                pushLog(`[告警] 矿产储备受限，星舰组装线挂起。`, "danger");
-            }
-        }
-
-        function upgradeHero() {
-            let cost = state.hero.lvl * 500;
-            if (state.resources.aether >= cost) {
-                state.resources.aether -= cost;
-                state.hero.lvl++;
-                state.hero.bonus += 15;
-                pushLog(`[进化] 指挥官迦罗高维基因跃迁成功，全军攻防增幅！`, "success");
-                updateUI();
-            } else {
-                pushLog(`[告警] 提取的源晶剂量不足以支撑基因进化。`, "danger");
-            }
-        }
-
-        function pushLog(text, type) {
-            const logBox = document.getElementById('log-box');
-            if(!logBox) return;
-            const item = document.createElement('div');
-            item.className = `log-item log-${type}`;
-            item.innerText = text;
-            logBox.appendChild(item);
-            logBox.scrollTop = logBox.scrollHeight;
-        }
-
-        // Native HTML5 Fullscreen Engine Switcher (Mobile Optimized)
-        function toggleFullScreen() {
-            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement) {
-                const docEl = document.documentElement;
-                if (docEl.requestFullscreen) docEl.requestFullscreen();
-                else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
-                else if (docEl.mozRequestFullScreen) docEl.mozRequestFullScreen();
-                pushLog("[系统] 矩阵全屏视野加载完毕，执行沉浸式控制。", "success");
-            } else {
-                const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen;
-                if (exit) exit.call(document);
-                pushLog("[系统] 已卸载全屏视野。", "system");
-            }
-        }
-
-        // Canvas Engine Battle Simulation
-        function startRaid(sectorId) {
-            const s = sectors.find(x => x.id === sectorId);
-            const overlay = document.getElementById('battle-screen');
-            const timer = document.getElementById('battle-timer');
-            overlay.style.display = 'flex';
-            
-            const canvas = document.getElementById('battleCanvas');
-            const ctx = canvas.getContext('2d');
-            let particles = [];
-            let frames = 0;
-            
-            function initAnimation() {
-                particles = [];
-                for(let i=0; i<25; i++) {
-                    particles.push({ x: Math.random() * 150 + 50, y: Math.random() * 260 + 70, vx: Math.random() * 3 + 2, vy: (Math.random() - 0.5) * 1.5, color: '#38bdf8', size: Math.random() * 2.5 + 1.5 });
+            // 1. 如果处于建造模式，点击则是安放兵营
+            if (buildMode) {
+                if (res.wood >= 100) {
+                    res.wood -= 100;
+                    buildings.push({ id: 'barracks_' + Date.now(), type: 'Barracks', side: 'player', x: pos.x, y: pos.y, r: 30, hp: 500, maxHp: 500 });
+                    document.getElementById('btn-spawn-s').disabled = false;
                 }
-                for(let i=0; i<25; i++) {
-                    particles.push({ x: Math.random() * 150 + 580, y: Math.random() * 260 + 70, vx: -(Math.random() * 3 + 2), vy: (Math.random() - 0.5) * 1.5, color: '#ef4444', size: Math.random() * 2.5 + 1.5 });
+                buildMode = false;
+                document.getElementById('toast').style.display = 'none';
+                return;
+            }
+
+            // 2. 检查是否点击了某个人类单位（选择单位）
+            let clickedUnit = units.find(u => Math.hypot(u.x - pos.x, u.y - pos.y) < 20);
+            if (clickedUnit && clickedUnit.side === 'player') {
+                selectedEntity = clickedUnit;
+                return;
+            }
+
+            // 3. 检查是否点击了建筑
+            let clickedBuild = buildings.find(b => Math.hypot(b.x - pos.x, b.y - pos.y) < b.r);
+            if (clickedBuild && clickedBuild.side === 'player') {
+                selectedEntity = clickedBuild;
+                return;
+            }
+
+            // 4. 如果已经选中了一个我方单位，此时点击空地、资源或敌人，则是下达“行动命令”
+            if (selectedEntity && selectedEntity.side === 'player' && !selectedEntity.type.toUpperCase) { 
+                // 指向资源点
+                let clickedRes = resourcesOnMap.find(r => Math.hypot(r.x - pos.x, r.y - pos.y) < 25);
+                // 指向敌方建筑
+                let clickedEnemyBuild = buildings.find(b => b.side === 'enemy' && Math.hypot(b.x - pos.x, b.y - pos.y) < b.r);
+                // 指向敌人单位
+                let clickedEnemyUnit = units.find(u => u.side === 'enemy' && Math.hypot(u.x - pos.x, u.y - pos.y) < 15);
+
+                if (selectedEntity.type === 'villager' && clickedRes) {
+                    // 村民去采矿/砍树
+                    selectedEntity.targetRes = clickedRes;
+                    selectedEntity.targetEnemy = null;
+                    selectedEntity.tx = clickedRes.x;
+                    selectedEntity.ty = clickedRes.y;
+                    selectedEntity.task = 'gather';
+                } else if (clickedEnemyUnit || clickedEnemyBuild) {
+                    // 战斗单位或村民去进攻
+                    selectedEntity.targetEnemy = clickedEnemyUnit || clickedEnemyBuild;
+                    selectedEntity.targetRes = null;
+                    selectedEntity.tx = (clickedEnemyUnit || clickedEnemyBuild).x;
+                    selectedEntity.ty = (clickedEnemyUnit || clickedEnemyBuild).y;
+                    selectedEntity.task = 'attack';
+                } else {
+                    // 纯移动命令
+                    selectedEntity.tx = pos.x;
+                    selectedEntity.ty = pos.y;
+                    selectedEntity.targetRes = null;
+                    selectedEntity.targetEnemy = null;
+                    selectedEntity.task = 'move';
                 }
             }
-            initAnimation();
+        }
 
-            let animInterval = setInterval(() => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                frames++;
-                
-                // Draw space background grid
-                ctx.strokeStyle = 'rgba(56, 189, 248, 0.04)';
-                ctx.lineWidth = 1;
-                for(let i=0; i<canvas.width; i+=50) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
-                for(let j=0; j<canvas.height; j+=50) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke(); }
+        canvas.addEventListener('mousedown', handleInteraction);
+        canvas.addEventListener('touchstart', function(e) { e.preventDefault(); handleInteraction(e); });
 
-                ctx.fillStyle = '#38bdf8';
-                ctx.font = '13px monospace';
-                ctx.fillText(`🚀 我方舰队 (战力: ${Math.floor(state.resources.fleet * (1 + state.hero.bonus/100))})`, 40, 45);
-                ctx.fillStyle = '#ef4444';
-                ctx.fillText(`🛸 目标御林守卫 (战力: ${s.reqFleet})`, 580, 45);
+        // 按钮指令
+        function spawnVillager() {
+            if (res.food >= 50) {
+                res.food -= 50;
+                units.push({ type: 'villager', side: 'player', x: 100, y: 250, tx: 140 + Math.random()*40, ty: 230 + Math.random()*40, hp: 50, maxHp: 50, targetRes: null, task: 'idle' });
+            }
+        }
+        function enterBuildMode() {
+            if (res.wood >= 100) {
+                buildMode = true;
+                document.getElementById('toast').style.display = 'block';
+            }
+        }
+        function spawnSoldier() {
+            let barracks = buildings.find(b => b.type === 'Barracks' && b.side === 'player');
+            if (barracks && res.food >= 60 && res.gold >= 20) {
+                res.food -= 60;
+                res.gold -= 20;
+                units.push({ type: 'soldier', side: 'player', x: barracks.x, y: barracks.y, tx: barracks.x + 40, ty: barracks.y + 40, hp: 120, maxHp: 120, task: 'idle' });
+            }
+        }
 
-                // Particles update
-                particles.forEach(p => {
-                    p.x += p.vx; p.y += p.vy;
-                    ctx.fillStyle = p.color;
-                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+        // 游戏核心循环逻辑处理
+        function updateGame() {
+            if (gameOver) return;
 
-                    if(Math.random() > 0.94) {
-                        ctx.strokeStyle = p.color === '#38bdf8' ? 'rgba(56, 189, 248, 0.5)' : 'rgba(239, 68, 68, 0.5)';
-                        ctx.lineWidth = 1.5;
-                        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + p.vx * 12, p.y + p.vy * 12); ctx.stroke();
+            // 资源随时间极微量自动产出（低保数值，防止玩家卡死）
+            res.food += 0.02;
+
+            // 简易敌军 AI 进攻波次生成器
+            spawnTimer++;
+            if (spawnTimer % 450 === 0) { // 每隔数秒刷一波敌人
+                let enemyBase = buildings.find(b => b.id === 'enemy-base');
+                if (enemyBase) {
+                    units.push({ type: 'soldier', side: 'enemy', x: enemyBase.x, y: enemyBase.y, tx: 100, ty: 250 + (Math.random()-0.5)*100, hp: 100, maxHp: 100, task: 'attack' });
+                }
+            }
+
+            // 更新单位行为
+            units.forEach((u, index) => {
+                // 移动行为
+                if (Math.hypot(u.tx - u.x, u.ty - u.y) > 4) {
+                    u.x += (u.tx - u.x) * 0.04;
+                    u.y += (u.ty - u.y) * 0.04;
+                } else {
+                    // 到达目的地后的衍生行为
+                    if (u.type === 'villager' && u.task === 'gather' && u.targetRes) {
+                        if (u.targetRes.amt > 0) {
+                            u.targetRes.amt -= 0.5;
+                            if (u.targetRes.type === 'tree') res.wood += 0.4;
+                            if (u.targetRes.type === 'gold') res.gold += 0.4;
+                        } else {
+                            u.task = 'idle';
+                            u.targetRes = null;
+                        }
                     }
-                });
-
-                timer.innerText = `火力覆盖与冲突结算中 [${Math.floor((90-frames)/3)}...]`;
-
-                if(frames >= 90) {
-                    clearInterval(animInterval);
-                    overlay.style.display = 'none';
-                    resolveBattle(s);
                 }
-            }, 33);
-        }
 
-        function resolveBattle(s) {
-            const totalPower = state.resources.fleet * (1 + state.hero.bonus/100);
-            const roll = Math.random() * s.reqFleet;
+                // 自动交战判定
+                if (u.type === 'soldier' || u.task === 'attack') {
+                    // 寻找敌方阵营目标
+                    let target = u.targetEnemy;
+                    if (!target) {
+                        // 自动搜寻附近最近的异军单位
+                        target = units.find(o => o.side !== u.side && Math.hypot(o.x - u.x, o.y - u.y) < 120) ||
+                                 buildings.find(b => b.side !== u.side && Math.hypot(b.x - u.x, b.y - u.y) < 150);
+                    }
+
+                    if (target && target.hp > 0) {
+                        // 靠拢目标
+                        u.tx = target.x;
+                        u.ty = target.y;
+                        // 近身开始互砍扣血
+                        if (Math.hypot(target.x - u.x, target.y - u.y) < 35) {
+                            target.hp -= u.type === 'soldier' ? 0.8 : 0.2; // 步兵攻击力比工人高
+                        }
+                    }
+                }
+            });
+
+            // 清理阵亡单位与被毁建筑
+            units = units.filter(u => u.hp > 0);
             
-            if (totalPower >= roll) {
-                state.resources.aether += s.lootA;
-                state.resources.ironwood += s.lootI;
-                pushLog(`[大捷] 摧毁 ${s.name} 防线！掠夺晶体+${s.lootA}，铁木+${s.lootI}。`, "success");
-            } else {
-                const loss = Math.max(1, Math.floor(state.resources.fleet * 0.25));
-                state.resources.fleet -= loss;
-                pushLog(`[失利] 突袭 ${s.name} 被引力雷重创，我方折损星舰 ${loss} 艘！`, "danger");
-            }
-            updateUI();
+            let tcAlive = buildings.find(b => b.id === 'tc' && b.hp > 0);
+            let enemyBaseAlive = buildings.find(b => b.id === 'enemy-base' && b.hp > 0);
+            buildings = buildings.filter(b => b.hp > 0);
+
+            if (!tcAlive) { gameOver = true; gameWin = false; }
+            if (!enemyBaseAlive) { gameOver = true; gameWin = true; }
+
+            // 同步UI文字数据
+            document.getElementById('r-food').innerText = Math.floor(res.food);
+            document.getElementById('r-wood').innerText = Math.floor(res.wood);
+            document.getElementById('r-gold').innerText = Math.floor(res.gold);
         }
 
-        updateUI();
-    </script>
-</body>
-</html>
+        // 全程高动态 Canvas 场景渲染
+        function renderGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 锁定画布分辨率比例缩放转换
+            ctx.save();
+            ctx.scale(canvas.width / GAME_W, canvas.height / GAME_H);
+
+            // 1. 绘制草地网格背景线
+            ctx.strokeStyle = 'rgba(21, 128, 61, 0.3)';
+            ctx.lineWidth = 1;
+            for(let x=0; x<GAME_W; x+=50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,GAME_H); ctx.stroke(); }
+            for(let y=0; y<GAME_H; y+=50) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(GAME_W,y); ctx.stroke(); }
+
+            // 2. 绘制静态资源点 (树木林
